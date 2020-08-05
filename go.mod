@@ -80,6 +80,7 @@ require (
 	github.com/kubesphere/sonargo v0.0.2
 	github.com/leodido/go-urn v1.1.0 // indirect
 	github.com/lib/pq v1.2.0 // indirect
+	github.com/lithammer/dedent v1.1.0
 	github.com/lucas-clemente/quic-go v0.11.1 // indirect
 	github.com/mattn/go-sqlite3 v1.11.0 // indirect
 	github.com/mholt/caddy v1.0.0

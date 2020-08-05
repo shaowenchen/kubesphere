@@ -16,9 +16,10 @@
 .idea/
 *.iml
 bin/
-
+cmd/upgrade/upgrade
 # Vscode files
 .vscode/
+./devops_data
 
 tmp/
 

@@ -75,6 +75,10 @@ func (c *ClientSetOptions) SetDevopsOptions(options *devops.DevopsOptions) *Clie
 	return c
 }
 
+func (c *ClientSetOptions) GetDevopsOptions() *devops.DevopsOptions {
+	return c.devopsOptions
+}
+
 func (c *ClientSetOptions) SetLdapOptions(options *ldap.LdapOptions) *ClientSetOptions {
 	c.ldapOptions = options
 	return c
@@ -152,6 +156,10 @@ func NewClientSetFactory(c *ClientSetOptions, stopCh <-chan struct{}) *ClientSet
 	}
 
 	return sharedClientSet
+}
+
+func (cs *ClientSet) GetOption() *ClientSetOptions{
+	return cs.csoptions
 }
 
 // lazy creating

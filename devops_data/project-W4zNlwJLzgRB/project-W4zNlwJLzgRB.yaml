@@ -1,44 +1,4 @@
-package devops
-
-import (
-	"fmt"
-	"github.com/lithammer/dedent"
-	"io/ioutil"
-	"os"
-	"strings"
-	"text/template"
-)
-
-func IsExist(path string) bool {
-	_, err := os.Stat(path)
-	if err != nil {
-		if os.IsExist(err) {
-			return true
-		}
-		if os.IsNotExist(err) {
-			return false
-		}
-		return false
-	}
-	return true
-}
-
-
-
-func CreateDir(path string) error {
-	if IsExist(path) == false {
-		err := os.MkdirAll(path, os.ModePerm)
-		if err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
-func GenerateDevOpsProjectYaml(filename string, variables map[string]interface{}) error {
-
-	var tmpl = template.Must(template.New(filename).Parse(
-		dedent.Dedent(`---
+---
 apiVersion: v1
 kind: Namespace
 metadata:
@@ -92,18 +52,3 @@ metadata:
 spec: {}
 status:
   adminNamespace: svnfvr6r
-    `)))
-	var buf strings.Builder
-	if err := tmpl.Execute(&buf, variables); err != nil {
-		return err
-	}
-	var path = "./" + DevOpsDir + "/" + filename + "/"
-	if err := os.MkdirAll(path, 0755); err != nil {
-		return err
-	}
-	err := ioutil.WriteFile(fmt.Sprintf( path +  filename + ".yaml"), []byte(buf.String()), 0644)
-	if err != nil {
-		return err
-	}
-	return nil
-}

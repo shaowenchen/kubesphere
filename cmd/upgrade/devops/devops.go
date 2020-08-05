@@ -1,9 +1,11 @@
 package devops
 
 import (
+	"encoding/json"
 	"fmt"
 	"github.com/spf13/cobra"
 	"k8s.io/klog"
+	"kubesphere.io/kubesphere/pkg/models/devops"
 	apiserverconfig "kubesphere.io/kubesphere/pkg/server/config"
 	"kubesphere.io/kubesphere/pkg/simple/client"
 	"os"
@@ -65,9 +67,21 @@ func upgradeDevOps()  {
 
 	// query pipeline and save
     for _, project := range projects {
-    	klog.V(LogLevel).Info(project.ProjectId)
+		GenerateDevOpsProjectYaml(project.ProjectId, nil)
 		DevOpsLogger().Println(project.ProjectId)
-    	pipelines := fmt.Sprintf()
+    	pipelinesByte, err := QueryPipelineList(project.ProjectId)
+    	if err != nil{
+    		continue
+		}
+		type Pipelines struct {
+			Items []devops.Pipeline `json:"items"`
+			Total int               `json:"total_count"`
+		}
+		var pipelineList Pipelines
+		err = json.Unmarshal(pipelinesByte, &pipelineList)
+        if err != nil{
+        	continue
+		}
+		//DevOpsLogger().Println(pipelineList)
 	}
-
 }
