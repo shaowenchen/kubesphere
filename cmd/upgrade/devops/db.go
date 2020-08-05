@@ -30,6 +30,10 @@ func QueryDevops()([]*v1alpha2.DevOpsProject, error){
 	return projects, nil
 }
 
+func QuerySecret(project string, doamin string)([]*devops.JenkinsCredential, error){
+	return devops.GetProjectCredentials(project, doamin)
+}
+
 func AddBasicRequest(req *http.Request) *http.Request{
 	var optoion = cs.ClientSets().GetOption()
 	var devopsOption = optoion.GetDevopsOptions()

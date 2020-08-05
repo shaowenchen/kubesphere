@@ -65,7 +65,7 @@ func upgradeDevOps()  {
 	dataDir := fmt.Sprintf("%s/%s", currentDir, DevOpsDir)
 	CreateDir(dataDir)
 
-	// query pipeline and save
+	// query devops
     for _, project := range projects {
 		GenerateDevOpsProjectYaml(project.ProjectId, nil)
 		DevOpsLogger().Println(project.ProjectId)
@@ -80,8 +80,21 @@ func upgradeDevOps()  {
 		var pipelineList Pipelines
 		err = json.Unmarshal(pipelinesByte, &pipelineList)
         if err != nil{
+        	DevOpsLogger().Println(err)
         	continue
 		}
-		//DevOpsLogger().Println(pipelineList)
+		// query pipeline
+		for _, pipeline := range pipelineList.Items{
+			pipelineObj, err := devops.GetProjectPipeline(project.ProjectId, pipeline.Name)
+			if err == nil{
+				GeneratePipelineYaml(project.ProjectId, pipeline.Name, *pipelineObj)
+			}
+		}
+		// query secret
+		secretList, err := QuerySecret(project.ProjectId, "_")
+		for _, secret := range secretList{
+			GenerateSecretYaml(project.ProjectId, secret.DisplayName, secret)
+		}
+
 	}
 }

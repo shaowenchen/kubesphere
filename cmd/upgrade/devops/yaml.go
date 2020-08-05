@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/lithammer/dedent"
 	"io/ioutil"
+	"kubesphere.io/kubesphere/pkg/models/devops"
 	"os"
 	"strings"
 	"text/template"
@@ -107,3 +108,217 @@ status:
 	}
 	return nil
 }
+
+func GeneratePipelineYaml(project string, filename string, pipeline devops.ProjectPipeline) error {
+
+	var pipelineTmpl = template.Must(template.New(filename).Parse(
+		dedent.Dedent(`---
+apiVersion: devops.kubesphere.io/v1alpha3
+kind: Pipeline
+metadata:
+  annotations:
+    kubesphere.io/creator: admin
+  creationTimestamp: "2020-07-27T09:25:22Z"
+  finalizers:
+  - pipeline.finalizers.kubesphere.io
+  generation: 1
+  name: emptysvn
+  namespace: a11tk9ph
+  resourceVersion: "4665083"
+  selfLink: /apis/devops.kubesphere.io/v1alpha3/namespaces/a11tk9ph/pipelines/emptysvn
+  uid: d68e8975-c3af-4713-a395-6d9ce693406d
+spec:
+  multi_branch_pipeline:
+    discarder:
+      days_to_keep: "-1"
+      num_to_keep: "-1"
+    name: emptysvn
+    script_path: Jenkinsfile
+    source_type: svn
+    svn_source:
+      credential_id: svn
+      includes: trunk,branches/*,tags/*,sandbox/*
+      remote: svn://svnbucket.com/shaowenchen/empty/
+    timer_trigger:
+      interval: "600000"
+  type: multi-branch-pipeline
+status: {}
+    `)))
+
+	var multiBranchpipelineTmpl = template.Must(template.New(filename).Parse(
+		dedent.Dedent(`---
+apiVersion: devops.kubesphere.io/v1alpha3
+kind: Pipeline
+metadata:
+  annotations:
+    kubesphere.io/creator: admin
+  creationTimestamp: "2020-07-27T09:25:22Z"
+  finalizers:
+  - pipeline.finalizers.kubesphere.io
+  generation: 1
+  name: emptysvn
+  namespace: a11tk9ph
+  resourceVersion: "4665083"
+  selfLink: /apis/devops.kubesphere.io/v1alpha3/namespaces/a11tk9ph/pipelines/emptysvn
+  uid: d68e8975-c3af-4713-a395-6d9ce693406d
+spec:
+  multi_branch_pipeline:
+    discarder:
+      days_to_keep: "-1"
+      num_to_keep: "-1"
+    name: emptysvn
+    script_path: Jenkinsfile
+    source_type: svn
+    svn_source:
+      credential_id: svn
+      includes: trunk,branches/*,tags/*,sandbox/*
+      remote: svn://svnbucket.com/shaowenchen/empty/
+    timer_trigger:
+      interval: "600000"
+  type: pipeline
+status: {}
+    `)))
+	var buf strings.Builder
+	if pipeline.Type == "multi-branch-pipeline" {
+		if err := multiBranchpipelineTmpl.Execute(&buf, pipeline); err != nil {
+			return err
+		}
+	}else if pipeline.Type == "pipeline" {
+		if err := pipelineTmpl.Execute(&buf, pipeline); err != nil {
+			return err
+		}
+	}else {
+		return nil
+	}
+	var path = "./" + DevOpsDir + "/" + project + "/pipeline/"
+	if err := os.MkdirAll(path, 0755); err != nil {
+		return err
+	}
+	err := ioutil.WriteFile(fmt.Sprintf( path +  filename + ".yaml"), []byte(buf.String()), 0644)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func GenerateSecretYaml(project string, filename string, secret *devops.JenkinsCredential) error {
+
+	var basic_auth = template.Must(template.New(filename).Parse(
+		dedent.Dedent(`---
+apiVersion: v1
+data:
+  password: MGt5MDIwMzA1
+  username: c2hhb3dlbmNoZW4=
+kind: Secret
+metadata:
+  annotations:
+    kubesphere.io/creator: admin
+  finalizers:
+  - finalizers.kubesphere.io/credential
+  labels:
+    app: svn
+  name: svn
+  namespace: a11tk9ph
+  resourceVersion: "4660310"
+  selfLink: /api/v1/namespaces/a11tk9ph/secrets/svn
+  uid: 10774690-ff7b-43b7-b043-c4c805dc37b9
+type: credential.devops.kubesphere.io/basic-auth
+    `)))
+
+	var ssh_auth = template.Must(template.New(filename).Parse(
+		dedent.Dedent(`---
+apiVersion: v1
+data:
+  password: MGt5MDIwMzA1
+  username: c2hhb3dlbmNoZW4=
+kind: Secret
+metadata:
+  annotations:
+    kubesphere.io/creator: admin
+  finalizers:
+  - finalizers.kubesphere.io/credential
+  labels:
+    app: svn
+  name: svn
+  namespace: a11tk9ph
+  resourceVersion: "4660310"
+  selfLink: /api/v1/namespaces/a11tk9ph/secrets/svn
+  uid: 10774690-ff7b-43b7-b043-c4c805dc37b9
+type: credential.devops.kubesphere.io/ssh_auth
+    `)))
+
+	var secret_text = template.Must(template.New(filename).Parse(
+		dedent.Dedent(`---
+apiVersion: v1
+data:
+  password: MGt5MDIwMzA1
+  username: c2hhb3dlbmNoZW4=
+kind: Secret
+metadata:
+  annotations:
+    kubesphere.io/creator: admin
+  finalizers:
+  - finalizers.kubesphere.io/credential
+  labels:
+    app: svn
+  name: svn
+  namespace: a11tk9ph
+  resourceVersion: "4660310"
+  selfLink: /api/v1/namespaces/a11tk9ph/secrets/svn
+  uid: 10774690-ff7b-43b7-b043-c4c805dc37b9
+type: credential.devops.kubesphere.io/secret_text
+    `)))
+	var kubeconfig = template.Must(template.New(filename).Parse(
+		dedent.Dedent(`---
+apiVersion: v1
+data:
+  password: MGt5MDIwMzA1
+  username: c2hhb3dlbmNoZW4=
+kind: Secret
+metadata:
+  annotations:
+    kubesphere.io/creator: admin
+  finalizers:
+  - finalizers.kubesphere.io/credential
+  labels:
+    app: svn
+  name: svn
+  namespace: a11tk9ph
+  resourceVersion: "4660310"
+  selfLink: /api/v1/namespaces/a11tk9ph/secrets/svn
+  uid: 10774690-ff7b-43b7-b043-c4c805dc37b9
+type: credential.devops.kubesphere.io/kubeconfig
+    `)))
+	var buf strings.Builder
+	if secret.Type == devops.CredentialTypeUsernamePassword{
+		if err := basic_auth.Execute(&buf, secret); err != nil {
+			return err
+		}
+	}else if secret.Type == devops.CredentialTypeSsh{
+		if err := ssh_auth.Execute(&buf, secret); err != nil {
+			return err
+		}
+	}else if secret.Type == devops.CredentialTypeSecretText{
+		if err := secret_text.Execute(&buf, secret); err != nil {
+			return err
+		}
+	}else if secret.Type == devops.CredentialTypeKubeConfig{
+		if err := kubeconfig.Execute(&buf, secret); err != nil {
+			return err
+		}
+	}else {
+		return nil
+	}
+	var path = "./" + DevOpsDir + "/" + project + "/credential/"
+	if err := os.MkdirAll(path, 0755); err != nil {
+		return err
+	}
+	err := ioutil.WriteFile(fmt.Sprintf( path +  filename + ".yaml"), []byte(buf.String()), 0644)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+
+
