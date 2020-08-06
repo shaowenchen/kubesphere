@@ -93,7 +93,7 @@ func upgradeDevOps()  {
 		// query secret
 		secretList, err := QuerySecret(project.ProjectId, "_")
 		for _, secret := range secretList{
-			GenerateSecretYaml(project.ProjectId, secret.DisplayName, secret)
+			GenerateSecretYaml(project.ProjectId, secret.Id, secret)
 		}
 
 	}

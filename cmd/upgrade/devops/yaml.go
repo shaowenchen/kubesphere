@@ -6,6 +6,8 @@ import (
 	"io/ioutil"
 	"kubesphere.io/kubesphere/pkg/models/devops"
 	"os"
+	"reflect"
+	"regexp"
 	"strings"
 	"text/template"
 )
@@ -23,8 +25,6 @@ func IsExist(path string) bool {
 	}
 	return true
 }
-
-
 
 func CreateDir(path string) error {
 	if IsExist(path) == false {
@@ -59,7 +59,6 @@ metadata:
     uid: 8489354c-86b1-45c5-975c-28f6aac1e2fb
   resourceVersion: "4654830"
   selfLink: /api/v1/namespaces/svnfvr6r
-  uid: 89c55b39-9aaf-4c12-89de-959d4d57d7e2
 spec:
   finalizers:
   - kubernetes
@@ -102,7 +101,7 @@ status:
 	if err := os.MkdirAll(path, 0755); err != nil {
 		return err
 	}
-	err := ioutil.WriteFile(fmt.Sprintf( path +  filename + ".yaml"), []byte(buf.String()), 0644)
+	err := ioutil.WriteFile(fmt.Sprintf(path+filename+".yaml"), []byte(buf.String()), 0644)
 	if err != nil {
 		return err
 	}
@@ -183,18 +182,18 @@ status: {}
 		if err := multiBranchpipelineTmpl.Execute(&buf, pipeline); err != nil {
 			return err
 		}
-	}else if pipeline.Type == "pipeline" {
+	} else if pipeline.Type == "pipeline" {
 		if err := pipelineTmpl.Execute(&buf, pipeline); err != nil {
 			return err
 		}
-	}else {
+	} else {
 		return nil
 	}
 	var path = "./" + DevOpsDir + "/" + project + "/pipeline/"
 	if err := os.MkdirAll(path, 0755); err != nil {
 		return err
 	}
-	err := ioutil.WriteFile(fmt.Sprintf( path +  filename + ".yaml"), []byte(buf.String()), 0644)
+	err := ioutil.WriteFile(fmt.Sprintf(path+filename+".yaml"), []byte(buf.String()), 0644)
 	if err != nil {
 		return err
 	}
@@ -203,122 +202,155 @@ status: {}
 
 func GenerateSecretYaml(project string, filename string, secret *devops.JenkinsCredential) error {
 
-	var basic_auth = template.Must(template.New(filename).Parse(
+	tf := template.FuncMap{
+		"isInt": func(str string) bool {
+			pattern := "\\d+"
+			result,_ := regexp.MatchString(pattern,str)
+			return result
+		}}
+	var basic_auth = template.Must(template.New(filename).Funcs(tf).Parse(
 		dedent.Dedent(`---
 apiVersion: v1
 data:
-  password: MGt5MDIwMzA1
-  username: c2hhb3dlbmNoZW4=
+  password: ""
+  username: ""
 kind: Secret
 metadata:
   annotations:
-    kubesphere.io/creator: admin
+    kubesphere.io/creator: {{.Creator}}
+{{if .Description}}
+    kubesphere.io/description: {{.Description}}
+{{else}}
+    kubesphere.io/description: ""
+{{end}}
   finalizers:
   - finalizers.kubesphere.io/credential
+{{ if isInt .Id }}
   labels:
-    app: svn
-  name: svn
-  namespace: a11tk9ph
-  resourceVersion: "4660310"
-  selfLink: /api/v1/namespaces/a11tk9ph/secrets/svn
-  uid: 10774690-ff7b-43b7-b043-c4c805dc37b9
+    app: "{{.Id}}"
+  name: "{{.Id}}"
+{{else}}
+  labels:
+    app: {{.Id}}
+  name: {{.Id}}
+{{end}}
+  namespace: {{.Namespace}}
 type: credential.devops.kubesphere.io/basic-auth
     `)))
 
-	var ssh_auth = template.Must(template.New(filename).Parse(
+	var ssh_auth = template.Must(template.New(filename).Funcs(tf).Parse(
 		dedent.Dedent(`---
 apiVersion: v1
 data:
-  password: MGt5MDIwMzA1
-  username: c2hhb3dlbmNoZW4=
+  passphrase: ""
+  private_key: ""
+  username: ""
 kind: Secret
 metadata:
   annotations:
-    kubesphere.io/creator: admin
+    kubesphere.io/creator: {{.Creator}}
+{{if .Description}}
+    kubesphere.io/description: {{.Description}}
+{{else}}
+    kubesphere.io/description: ""
+{{end}}
   finalizers:
   - finalizers.kubesphere.io/credential
   labels:
-    app: svn
-  name: svn
-  namespace: a11tk9ph
-  resourceVersion: "4660310"
-  selfLink: /api/v1/namespaces/a11tk9ph/secrets/svn
-  uid: 10774690-ff7b-43b7-b043-c4c805dc37b9
-type: credential.devops.kubesphere.io/ssh_auth
+    app: {{.Id}}
+  name: {{.Id}}
+  namespace: {{.Namespace}}
+type: credential.devops.kubesphere.io/ssh-auth
     `)))
 
-	var secret_text = template.Must(template.New(filename).Parse(
+	var secret_text = template.Must(template.New(filename).Funcs(tf).Parse(
 		dedent.Dedent(`---
 apiVersion: v1
 data:
-  password: MGt5MDIwMzA1
-  username: c2hhb3dlbmNoZW4=
+  secret: ""
 kind: Secret
 metadata:
   annotations:
-    kubesphere.io/creator: admin
+    kubesphere.io/creator: {{.Creator}}
+{{if .Description}}
+    kubesphere.io/description: {{.Description}}
+{{else}}
+    kubesphere.io/description: ""
+{{end}}
   finalizers:
   - finalizers.kubesphere.io/credential
   labels:
-    app: svn
-  name: svn
-  namespace: a11tk9ph
-  resourceVersion: "4660310"
-  selfLink: /api/v1/namespaces/a11tk9ph/secrets/svn
-  uid: 10774690-ff7b-43b7-b043-c4c805dc37b9
-type: credential.devops.kubesphere.io/secret_text
+    app: {{.Id}}
+  name: {{.Id}}
+  namespace: {{.Namespace}}
+type: credential.devops.kubesphere.io/secret-text
     `)))
-	var kubeconfig = template.Must(template.New(filename).Parse(
+	var kubeconfig = template.Must(template.New(filename).Funcs(tf).Parse(
 		dedent.Dedent(`---
 apiVersion: v1
 data:
-  password: MGt5MDIwMzA1
-  username: c2hhb3dlbmNoZW4=
+  content: ""
 kind: Secret
 metadata:
   annotations:
-    kubesphere.io/creator: admin
+    kubesphere.io/creator: {{.Creator}}
+{{if .Description}}
+    kubesphere.io/description: {{.Description}}
+{{else}}
+    kubesphere.io/description: ""
+{{end}}
   finalizers:
   - finalizers.kubesphere.io/credential
   labels:
-    app: svn
-  name: svn
-  namespace: a11tk9ph
-  resourceVersion: "4660310"
-  selfLink: /api/v1/namespaces/a11tk9ph/secrets/svn
-  uid: 10774690-ff7b-43b7-b043-c4c805dc37b9
+    app: {{.Id}}
+  name: {{.Id}}
+  namespace: {{.Namespace}}
 type: credential.devops.kubesphere.io/kubeconfig
     `)))
 	var buf strings.Builder
-	if secret.Type == devops.CredentialTypeUsernamePassword{
-		if err := basic_auth.Execute(&buf, secret); err != nil {
+	data := map[string]string{
+		"Id":          secret.Id,
+		"Description": secret.Description,
+		"Creator":     secret.Creator,
+		"Namespace":   project,
+	}
+	fmt.Println(data)
+	if secret.Type == devops.CredentialTypeUsernamePassword {
+		if err := basic_auth.Execute(&buf, data); err != nil {
 			return err
 		}
-	}else if secret.Type == devops.CredentialTypeSsh{
-		if err := ssh_auth.Execute(&buf, secret); err != nil {
+	} else if secret.Type == devops.CredentialTypeSsh {
+		if err := ssh_auth.Execute(&buf, data); err != nil {
 			return err
 		}
-	}else if secret.Type == devops.CredentialTypeSecretText{
-		if err := secret_text.Execute(&buf, secret); err != nil {
+	} else if secret.Type == devops.CredentialTypeSecretText {
+		if err := secret_text.Execute(&buf, data); err != nil {
 			return err
 		}
-	}else if secret.Type == devops.CredentialTypeKubeConfig{
-		if err := kubeconfig.Execute(&buf, secret); err != nil {
+	} else if secret.Type == devops.CredentialTypeKubeConfig {
+		if err := kubeconfig.Execute(&buf, data); err != nil {
 			return err
 		}
-	}else {
+	} else {
 		return nil
 	}
 	var path = "./" + DevOpsDir + "/" + project + "/credential/"
 	if err := os.MkdirAll(path, 0755); err != nil {
 		return err
 	}
-	err := ioutil.WriteFile(fmt.Sprintf( path +  filename + ".yaml"), []byte(buf.String()), 0644)
+	err := ioutil.WriteFile(fmt.Sprintf(path+filename+".yaml"), []byte(buf.String()), 0644)
 	if err != nil {
 		return err
 	}
 	return nil
 }
 
-
-
+func IsNumber(i interface{}) bool {
+	v := reflect.ValueOf(i).Kind()
+	switch v {
+	case reflect.Int, reflect.Int8, reflect.Int32, reflect.Int64, reflect.Uint, reflect.Uint8, reflect.Uint32, reflect.Uint64, reflect.Float32, reflect.Float64:
+		return true
+	default:
+		return false
+	}
+}
