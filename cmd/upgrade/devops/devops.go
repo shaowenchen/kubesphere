@@ -5,13 +5,15 @@ import (
 	"fmt"
 	"github.com/spf13/cobra"
 	"k8s.io/klog"
+	"kubesphere.io/kubesphere/cmd/ks-apiserver/app"
 	"kubesphere.io/kubesphere/pkg/models/devops"
 	apiserverconfig "kubesphere.io/kubesphere/pkg/server/config"
 	"kubesphere.io/kubesphere/pkg/simple/client"
+	"kubesphere.io/kubesphere/pkg/utils/signals"
 )
 
 const (
-	LogLevel = 1
+	LogLevel  = 1
 	DevOpsDir = "devops_data"
 )
 
@@ -36,16 +38,18 @@ func NewDevOpsCommand() *cobra.Command {
 				SetElasticSearchOptions(conf.LoggingOptions)
 
 			client.NewClientSetFactory(csop, nil)
-			klog.V(LogLevel).Info("start upgrade devops")
-			upgradeDevOps()
-			klog.V(LogLevel).Info("end upgrade devops")
+			err := app.WaitForResourceSync(signals.SetupSignalHandler())
+			if err != nil {
+			} else {
+				upgradeDevOps()
+			}
 		},
 	}
 
 	return cmd
 }
 
-func upgradeDevOps()  {
+func upgradeDevOps() {
 
 	// query devops
 	projects, err := QueryDevops()
@@ -64,12 +68,12 @@ func upgradeDevOps()  {
 	//CreateDir(dataDir)
 
 	// query devops
-    for _, project := range projects {
-		GenerateDevOpsProjectYaml(project.ProjectId, nil)
+	for _, project := range projects {
+		GenerateDevOpsProjectYaml(project.ProjectId, project.Workspace)
 		DevOpsLogger().Println(project.ProjectId)
-    	pipelinesByte, err := QueryPipelineList(project.ProjectId)
-    	if err != nil{
-    		continue
+		pipelinesByte, err := QueryPipelineList(project.ProjectId)
+		if err != nil {
+			continue
 		}
 		type Pipelines struct {
 			Items []devops.Pipeline `json:"items"`
@@ -77,26 +81,26 @@ func upgradeDevOps()  {
 		}
 		var pipelineList Pipelines
 		err = json.Unmarshal(pipelinesByte, &pipelineList)
-        if err != nil{
-        	DevOpsLogger().Println(err)
-        	continue
+		if err != nil {
+			DevOpsLogger().Println(err)
+			continue
 		}
 		// query pipeline
-		for _, pipeline := range pipelineList.Items{
+		for _, pipeline := range pipelineList.Items {
 			pipelineObj, err := devops.GetProjectPipeline(project.ProjectId, pipeline.Name)
-			if err == nil{
+			if err == nil {
 				GeneratePipelineYaml(project.ProjectId, pipeline.Name, *pipelineObj)
 			}
 		}
 		// query secret
 		secretList, err := QuerySecret(project.ProjectId, "_")
-		for _, secret := range secretList{
+		for _, secret := range secretList {
 			GenerateSecretYaml(project.ProjectId, secret.Id, secret)
 		}
 
 	}
 	// upgrade iam
-	for _, item := range GetDevOpsIm(){
+	for _, item := range GetDevOpsIm() {
 		DevOpsLogger().Println(*item)
 	}
 }

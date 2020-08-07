@@ -5,6 +5,7 @@ import (
 	"github.com/lithammer/dedent"
 	"gopkg.in/yaml.v2"
 	"io/ioutil"
+	"kubesphere.io/kubesphere/pkg/informers"
 	"kubesphere.io/kubesphere/pkg/models/devops"
 	"os"
 	"reflect"
@@ -37,64 +38,41 @@ func CreateDir(path string) error {
 	return nil
 }
 
-func GenerateDevOpsProjectYaml(filename string, variables map[string]interface{}) error {
+func GenerateDevOpsProjectYaml(filename string, workspaceName string) error {
+
+	workspace, err := informers.KsSharedInformerFactory().Tenant().V1alpha1().Workspaces().Lister().Get(workspaceName)
+	if err != nil{
+		return err
+	}
 
 	var tmpl = template.Must(template.New(filename).Parse(
 		dedent.Dedent(`---
-apiVersion: v1
-kind: Namespace
-metadata:
-  finalizers:
-  - finalizers.kubesphere.io/namespaces
-  generateName: svn
-  labels:
-    kubesphere.io/devopsproject: svn
-    kubesphere.io/namespace: svnfvr6r
-  name: svnfvr6r
-  ownerReferences:
-  - apiVersion: devops.kubesphere.io/v1alpha3
-    blockOwnerDeletion: true
-    controller: true
-    kind: DevOpsProject
-    name: svn
-    uid: 8489354c-86b1-45c5-975c-28f6aac1e2fb
-  resourceVersion: "4654830"
-  selfLink: /api/v1/namespaces/svnfvr6r
-spec:
-  finalizers:
-  - kubernetes
-status:
-  phase: Active
-
----
 apiVersion: devops.kubesphere.io/v1alpha3
 kind: DevOpsProject
 metadata:
   annotations:
     kubesphere.io/creator: admin
-    kubesphere.io/workspace: w2
-  creationTimestamp: "2020-07-27T08:42:36Z"
+    kubesphere.io/workspace: {{ .workspace }}
   finalizers:
   - devopsproject.finalizers.kubesphere.io
-  generation: 2
   labels:
-    kubesphere.io/workspace: w2
-  name: svn
+    kubesphere.io/workspace: {{ .workspace }}
+  name: {{ .filename }}
   ownerReferences:
-  - apiVersion: tenant.kubesphere.io/v1alpha1
+  - apiVersion: {{ .apiVersion }}
     blockOwnerDeletion: true
     controller: true
     kind: Workspace
-    name: w2
+    name: {{ .workspace }}
     uid: 04e1dbcd-63af-45de-998e-ec39042193cc
-  resourceVersion: "5261623"
-  selfLink: /apis/devops.kubesphere.io/v1alpha3/devopsprojects/svn
-  uid: 8489354c-86b1-45c5-975c-28f6aac1e2fb
-spec: {}
-status:
-  adminNamespace: svnfvr6r
     `)))
 	var buf strings.Builder
+	variables := map[string]string {
+		"workspace": workspace.Name,
+		"apiVersion": workspace.APIVersion,
+		"uid": string(workspace.UID),
+		"filename": filename,
+	}
 	if err := tmpl.Execute(&buf, variables); err != nil {
 		return err
 	}
@@ -102,7 +80,7 @@ status:
 	if err := os.MkdirAll(path, 0755); err != nil {
 		return err
 	}
-	err := ioutil.WriteFile(fmt.Sprintf(path+filename+".yaml"), []byte(buf.String()), 0644)
+	err = ioutil.WriteFile(fmt.Sprintf(path+filename+".yaml"), []byte(buf.String()), 0644)
 	if err != nil {
 		return err
 	}

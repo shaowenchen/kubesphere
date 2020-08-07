@@ -11,7 +11,7 @@ import (
 	"net/url"
 )
 
-func QueryDevops()([]*v1alpha2.DevOpsProject, error){
+func QueryDevops() ([]*v1alpha2.DevOpsProject, error) {
 	dbconn, err := cs.ClientSets().MySQL()
 	if err != nil {
 		if _, ok := err.(cs.ClientSetNotEnabledError); ok {
@@ -31,11 +31,11 @@ func QueryDevops()([]*v1alpha2.DevOpsProject, error){
 	return projects, nil
 }
 
-func QuerySecret(project string, doamin string)([]*devops.JenkinsCredential, error){
+func QuerySecret(project string, doamin string) ([]*devops.JenkinsCredential, error) {
 	return devops.GetProjectCredentials(project, doamin)
 }
 
-func QueryProjectMemberShip(projectId string)([]*devops.DevOpsProjectMembership, error){
+func QueryProjectMemberShip(projectId string) ([]*devops.DevOpsProjectMembership, error) {
 	dbconn, err := cs.ClientSets().MySQL()
 	if err != nil {
 		return nil, err
@@ -43,7 +43,7 @@ func QueryProjectMemberShip(projectId string)([]*devops.DevOpsProjectMembership,
 	query := dbconn.Select(devops.DevOpsProjectMembershipColumns...).
 		From(devops.DevOpsProjectMembershipTableName).
 		Where(db.And(db.Eq(devops.DevOpsProjectMembershipProjectIdColumn, projectId)))
-	memberships := 	make([]*devops.DevOpsProjectMembership, 0)
+	memberships := make([]*devops.DevOpsProjectMembership, 0)
 	_, err = query.Load(&memberships)
 	if err != nil {
 		return nil, err
@@ -51,14 +51,14 @@ func QueryProjectMemberShip(projectId string)([]*devops.DevOpsProjectMembership,
 	return memberships, nil
 }
 
-func AddBasicRequest(req *http.Request) *http.Request{
+func AddBasicRequest(req *http.Request) *http.Request {
 	var optoion = cs.ClientSets().GetOption()
 	var devopsOption = optoion.GetDevopsOptions()
 
 	creds := base64.StdEncoding.EncodeToString([]byte(fmt.Sprintf("%s:%s", devopsOption.Username, devopsOption.Password)))
 
 	var header = req.Header
-	if header == nil{
+	if header == nil {
 		header = make(map[string][]string)
 	}
 	header.Set("Authorization", fmt.Sprintf("Basic %s", creds))
@@ -66,10 +66,10 @@ func AddBasicRequest(req *http.Request) *http.Request{
 	return req
 }
 
-func QueryPipelineList(project string)([]byte, error){
+func QueryPipelineList(project string) ([]byte, error) {
 	var req http.Request
-	var url = url.URL{RawQuery:"q=type:pipeline;organization:jenkins;pipeline:" + project + "%2F*;excludedFromFlattening:jenkins.branch.MultiBranchProject,hudson.matrix.MatrixProject&filter=no-folders&start=0&limit=9999"}
-    req.URL = &url
+	var url = url.URL{RawQuery: "q=type:pipeline;organization:jenkins;pipeline:" + project + "%2F*;excludedFromFlattening:jenkins.branch.MultiBranchProject,hudson.matrix.MatrixProject&filter=no-folders&start=0&limit=9999"}
+	req.URL = &url
 	AddBasicRequest(&req)
 	return devops.SearchPipelines(&req)
 }
