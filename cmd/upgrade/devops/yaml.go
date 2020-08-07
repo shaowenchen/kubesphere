@@ -3,6 +3,7 @@ package devops
 import (
 	"fmt"
 	"github.com/lithammer/dedent"
+	"gopkg.in/yaml.v2"
 	"io/ioutil"
 	"kubesphere.io/kubesphere/pkg/models/devops"
 	"os"
@@ -109,8 +110,7 @@ status:
 }
 
 func GeneratePipelineYaml(project string, filename string, pipeline devops.ProjectPipeline) error {
-
-	var pipelineTmpl = template.Must(template.New(filename).Parse(
+	var pipelineTmpl = template.Must(template.New(filename).Funcs(tf).Parse(
 		dedent.Dedent(`---
 apiVersion: devops.kubesphere.io/v1alpha3
 kind: Pipeline
@@ -122,80 +122,46 @@ metadata:
   name: "{{.Pipeline.Name}}"
   namespace: "{{.Namespace}}"
 spec:
-{{ if false }}
-  pipeline:
-    discarder:
-      days_to_keep: "{{.Pipeline.Discarder.DaysToKeep}}"
-      num_to_keep: "{{.Pipeline.Discarder.NumToKeep}}"
-    name: "{{.Pipeline.Name}}"
-    script_path: "{{.Pipeline.Name}}"
-    source_type: svn
-    svn_source:
-      credential_id: svn
-      includes: trunk,branches/*,tags/*,sandbox/*
-      remote: svn://svnbucket.com/shaowenchen/empty/
-    timer_trigger:
-      interval: "{{.Pipeline.TimerTrigger}}"
-    jenkinsfile: "{{.Pipeline.Jenkinsfile}}"
-    description: "{{.Pipeline.Description}}"
-{{end}}
-  pipeline:
-    discarder:
-      days_to_keep: "7"
-      num_to_keep: "10"
-    name: empty
   type: pipeline
+  pipeline:
+    {{ getYaml .Pipeline }}
 status: {}
     `)))
 
-	var multiBranchpipelineTmpl = template.Must(template.New(filename).Parse(
+	var multiBranchpipelineTmpl = template.Must(template.New(filename).Funcs(tf).Parse(
 		dedent.Dedent(`---
 apiVersion: devops.kubesphere.io/v1alpha3
 kind: Pipeline
 metadata:
   annotations:
     kubesphere.io/creator: admin
-  creationTimestamp: "2020-07-27T09:25:22Z"
   finalizers:
   - pipeline.finalizers.kubesphere.io
-  generation: 1
-  name: emptysvn
-  namespace: a11tk9ph
-  resourceVersion: "4665083"
-  selfLink: /apis/devops.kubesphere.io/v1alpha3/namespaces/a11tk9ph/pipelines/emptysvn
-  uid: d68e8975-c3af-4713-a395-6d9ce693406d
+  name: "{{.Pipeline.Name}}"
+  namespace: "{{.Namespace}}"
 spec:
-  multi_branch_pipeline:
-    discarder:
-      days_to_keep: "-1"
-      num_to_keep: "-1"
-    name: emptysvn
-    script_path: Jenkinsfile
-    source_type: svn
-    svn_source:
-      credential_id: svn
-      includes: trunk,branches/*,tags/*,sandbox/*
-      remote: svn://svnbucket.com/shaowenchen/empty/
-    timer_trigger:
-      interval: "600000"
-  type: pipeline
+  type: multi-branch-pipeline
+  multi-branch-pipeline:
+    {{ getYaml .Pipeline }}
 status: {}
     `)))
 	var buf strings.Builder
 	if pipeline.Type == "multi-branch-pipeline" && pipeline.MultiBranchPipeline != nil {
 		data := map[string]interface{}{
-			"Pipeline":    pipeline.MultiBranchPipeline,
-			"Namespace":   project,
+			"Pipeline":  *pipeline.MultiBranchPipeline,
+			"Namespace": project,
 		}
 		if err := multiBranchpipelineTmpl.Execute(&buf, data); err != nil {
+			DevOpsLogger().Println("Pipeline: %s, Exception: %v", pipeline, err)
 			return err
 		}
-	} else if pipeline.Type == "pipeline" && pipeline.Pipeline != nil{
+	} else if pipeline.Type == "pipeline" && pipeline.Pipeline != nil {
 		data := map[string]interface{}{
-			"Pipeline":    pipeline.Pipeline,
-			"Namespace":   project,
+			"Pipeline":  *pipeline.Pipeline,
+			"Namespace": project,
 		}
 		if err := pipelineTmpl.Execute(&buf, data); err != nil {
+			DevOpsLogger().Println("Pipeline: %s, Exception: %v", pipeline, err)
 			return err
 		}
 	} else {
@@ -213,13 +179,6 @@ status: {}
 }
 
 func GenerateSecretYaml(project string, filename string, secret *devops.JenkinsCredential) error {
-
-	tf := template.FuncMap{
-		"isInt": func(str string) bool {
-			pattern := "\\d+"
-			result,_ := regexp.MatchString(pattern,str)
-			return result
-		}}
 	var basic_auth = template.Must(template.New(filename).Funcs(tf).Parse(
 		dedent.Dedent(`---
 apiVersion: v1
@@ -334,12 +293,66 @@ type: credential.devops.kubesphere.io/kubeconfig
 	return nil
 }
 
-func IsNumber(i interface{}) bool {
-	v := reflect.ValueOf(i).Kind()
-	switch v {
-	case reflect.Int, reflect.Int8, reflect.Int32, reflect.Int64, reflect.Uint, reflect.Uint8, reflect.Uint32, reflect.Uint64, reflect.Float32, reflect.Float64:
-		return true
-	default:
-		return false
+var tf = template.FuncMap{
+	"isInt": func(str string) bool {
+		pattern := "\\d+"
+		result, _ := regexp.MatchString(pattern, str)
+		return result
+	},
+	"isProperty": func(obj interface{}, property string) bool {
+		t := reflect.TypeOf(obj)
+		if t.String() == "Ptr"{
+			t = reflect.TypeOf(obj)
+		}
+		if _, ok := t.FieldByName(property); ok {
+			return true
+		} else {
+			return false
+		}
+	},
+	"getYaml": func(obj interface{}) string {
+		var pyaml, err = yaml.Marshal(obj)
+		if err != nil{
+			DevOpsLogger().Println("%v", err)
+			return ""
+		}else{
+			return replaceKey(string(pyaml))
+		}
+	},
+}
+
+func replaceKey(old string) string{
+	var new = old
+	var replaceList = map[string]string{
+		"\n": "\n    ",
+		"null": "",
+		"disableConcurrent": "disable_concurrent",
+		"timertrigger": "timer_trigger",
+		"remotetrigger": "remote_trigger",
+		"gitsource": "git_source",
+		"githubsource": "github_source",
+		"svnsource": "svn_source",
+		"singlesvnsource": "single_svn_source",
+		"bitbucketserversource": "bitbucket_server_source",
+		"scriptpath": "script_path",
+		"multibranchjobtrigger": "multibranch_job_trigger",
+		"scmid": "scm_id",
+		"credentialid": "credential_id",
+		"discoverbranches": "discover_branches",
+		"gitcloneoption": "git_clone_option",
+		"regexfilter": "regex_filter",
+		"apiuri": "api_uri",
+		"discoverprfromorigin": "discover_pr_from_origin",
+		"discoverprfromforks": "discover_pr_from_forks",
+		"gitclone_option": "git_clone_option",
+		"createaction_job_to_trigger": "create_action_job_to_trigger",
+		"deleteaction_job_to_trigger": "delete_action_job_to_trigger",
+		"daystokeep": "days_to_keep",
+		"numtokeep": "num_to_keep",
+		"defaultvalue": "default_value",
 	}
+	for key, value := range replaceList{
+		new = strings.Replace(new, key, value, -1)
+	}
+	return new
 }

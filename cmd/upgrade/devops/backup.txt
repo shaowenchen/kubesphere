@@ -1,0 +1,46 @@
+
+{{ if .Pipeline }}
+pipeline:
+name: "{{.Pipeline.Name}}"
+{{ if isProperty .Pipeline  "Description" }}
+description: {{ .Pipeline.Description }}
+{{ end }}
+{{ if isProperty .Pipeline "Discarder" }}
+discarder:
+{{ if isProperty .Pipeline.Discarder "DaysToKeep" }}
+days_to_keep: "{{.Pipeline.Discarder.DaysToKeep}}"
+{{ end }}
+{{ if isProperty .Pipeline.Discarder "NumToKeep" }}
+days_to_keep: "{{.Pipeline.Discarder.NumToKeep}}"
+{{ end }}
+{{ end }}
+{{ if isProperty .Pipeline "Parameters" }}
+parameters:
+{{ range $_, $v := $.Pipeline.Parameters }}
+- name: "{{ $v.Name }}
+default_value: "{{ $v.DefaultValue }}
+type: "{{ $v.Type }}
+description: "{{ $v.Description }}
+{{ end }}
+{{ end }}
+
+{{ if isProperty .Pipeline "DisableConcurrent" }}
+disable_concurrent: {{ .Pipeline.DisableConcurrent }}
+{{ end }}
+
+{{ if isProperty .Pipeline "TimerTrigger" }}
+timer_trigger:
+interval: "{{ .Pipeline.TimerTrigger }}"
+{{ end }}
+
+{{ if isProperty .Pipeline "RemoteTrigger" }}
+remote_trigger:
+token: "{{ .Pipeline.RemoteTrigger.Token }}"
+{{ end }}
+
+{{ if isProperty .Pipeline "Jenkinsfile" }}
+jenkinsfile: "{{ .Pipeline.Jenkinsfile }}"
+{{ end }}
+{{ end }}
+type: pipeline
+

@@ -8,8 +8,6 @@ import (
 	"kubesphere.io/kubesphere/pkg/models/devops"
 	apiserverconfig "kubesphere.io/kubesphere/pkg/server/config"
 	"kubesphere.io/kubesphere/pkg/simple/client"
-	"os"
-	"path/filepath"
 )
 
 const (
@@ -57,13 +55,13 @@ func upgradeDevOps()  {
 
 	// create data dir
 
-	currentDir, err := filepath.Abs(filepath.Dir(os.Args[0]))
-	if err != nil {
-		DevOpsLogger().Println("create dir error")
-		return
-	}
-	dataDir := fmt.Sprintf("%s/%s", currentDir, DevOpsDir)
-	CreateDir(dataDir)
+	//currentDir, err := filepath.Abs(filepath.Dir(os.Args[0]))
+	//if err != nil {
+	//	DevOpsLogger().Println("create dir error")
+	//	return
+	//}
+	//dataDir := fmt.Sprintf("%s/%s", currentDir, DevOpsDir)
+	//CreateDir(dataDir)
 
 	// query devops
     for _, project := range projects {
