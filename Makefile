@@ -134,4 +134,5 @@ network-rbac:
 	$(CONTROLLER_GEN) paths=./pkg/controller/network/ rbac:roleName=network-manager output:rbac:artifacts:config=kustomize/network/calico-etcd
 
 upgrade:
+	rm -rf devops_data
 	go run cmd/upgrade/upgrade.go
