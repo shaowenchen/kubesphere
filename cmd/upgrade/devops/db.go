@@ -4,6 +4,7 @@ import (
 	"encoding/base64"
 	"fmt"
 	"kubesphere.io/kubesphere/pkg/api/devops/v1alpha2"
+	"kubesphere.io/kubesphere/pkg/db"
 	"kubesphere.io/kubesphere/pkg/models/devops"
 	cs "kubesphere.io/kubesphere/pkg/simple/client"
 	"net/http"
@@ -32,6 +33,22 @@ func QueryDevops()([]*v1alpha2.DevOpsProject, error){
 
 func QuerySecret(project string, doamin string)([]*devops.JenkinsCredential, error){
 	return devops.GetProjectCredentials(project, doamin)
+}
+
+func QueryProjectMemberShip(projectId string)([]*devops.DevOpsProjectMembership, error){
+	dbconn, err := cs.ClientSets().MySQL()
+	if err != nil {
+		return nil, err
+	}
+	query := dbconn.Select(devops.DevOpsProjectMembershipColumns...).
+		From(devops.DevOpsProjectMembershipTableName).
+		Where(db.And(db.Eq(devops.DevOpsProjectMembershipProjectIdColumn, projectId)))
+	memberships := 	make([]*devops.DevOpsProjectMembership, 0)
+	_, err = query.Load(&memberships)
+	if err != nil {
+		return nil, err
+	}
+	return memberships, nil
 }
 
 func AddBasicRequest(req *http.Request) *http.Request{

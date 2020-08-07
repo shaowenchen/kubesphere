@@ -117,30 +117,34 @@ kind: Pipeline
 metadata:
   annotations:
     kubesphere.io/creator: admin
-  creationTimestamp: "2020-07-27T09:25:22Z"
   finalizers:
   - pipeline.finalizers.kubesphere.io
-  generation: 1
-  name: emptysvn
-  namespace: a11tk9ph
-  resourceVersion: "4665083"
-  selfLink: /apis/devops.kubesphere.io/v1alpha3/namespaces/a11tk9ph/pipelines/emptysvn
-  uid: d68e8975-c3af-4713-a395-6d9ce693406d
+  name: "{{.Pipeline.Name}}"
+  namespace: "{{.Namespace}}"
 spec:
-  multi_branch_pipeline:
+{{ if false }}
+  pipeline:
     discarder:
-      days_to_keep: "-1"
-      num_to_keep: "-1"
-    name: emptysvn
-    script_path: Jenkinsfile
+      days_to_keep: "{{.Pipeline.Discarder.DaysToKeep}}"
+      num_to_keep: "{{.Pipeline.Discarder.NumToKeep}}"
+    name: "{{.Pipeline.Name}}"
+    script_path: "{{.Pipeline.Name}}"
     source_type: svn
     svn_source:
       credential_id: svn
       includes: trunk,branches/*,tags/*,sandbox/*
       remote: svn://svnbucket.com/shaowenchen/empty/
     timer_trigger:
-      interval: "600000"
-  type: multi-branch-pipeline
+      interval: "{{.Pipeline.TimerTrigger}}"
+    jenkinsfile: "{{.Pipeline.Jenkinsfile}}"
+    description: "{{.Pipeline.Description}}"
+{{end}}
+  pipeline:
+    discarder:
+      days_to_keep: "7"
+      num_to_keep: "10"
+    name: empty
+  type: pipeline
 status: {}
     `)))
 
@@ -178,12 +182,20 @@ spec:
 status: {}
     `)))
 	var buf strings.Builder
-	if pipeline.Type == "multi-branch-pipeline" {
-		if err := multiBranchpipelineTmpl.Execute(&buf, pipeline); err != nil {
+	if pipeline.Type == "multi-branch-pipeline" && pipeline.MultiBranchPipeline != nil {
+		data := map[string]interface{}{
+			"Pipeline":    pipeline.MultiBranchPipeline,
+			"Namespace":   project,
+		}
+		if err := multiBranchpipelineTmpl.Execute(&buf, data); err != nil {
 			return err
 		}
-	} else if pipeline.Type == "pipeline" {
-		if err := pipelineTmpl.Execute(&buf, pipeline); err != nil {
+	} else if pipeline.Type == "pipeline" && pipeline.Pipeline != nil{
+		data := map[string]interface{}{
+			"Pipeline":    pipeline.Pipeline,
+			"Namespace":   project,
+		}
+		if err := pipelineTmpl.Execute(&buf, data); err != nil {
 			return err
 		}
 	} else {
@@ -217,24 +229,14 @@ data:
 kind: Secret
 metadata:
   annotations:
-    kubesphere.io/creator: {{.Creator}}
-{{if .Description}}
-    kubesphere.io/description: {{.Description}}
-{{else}}
-    kubesphere.io/description: ""
-{{end}}
+    kubesphere.io/creator: "{{.Creator}}"
+    kubesphere.io/description: "{{.Description}}"
   finalizers:
   - finalizers.kubesphere.io/credential
-{{ if isInt .Id }}
   labels:
     app: "{{.Id}}"
   name: "{{.Id}}"
-{{else}}
-  labels:
-    app: {{.Id}}
-  name: {{.Id}}
-{{end}}
-  namespace: {{.Namespace}}
+  namespace: "{{.Namespace}}"
 type: credential.devops.kubesphere.io/basic-auth
     `)))
 
@@ -248,18 +250,14 @@ data:
 kind: Secret
 metadata:
   annotations:
-    kubesphere.io/creator: {{.Creator}}
-{{if .Description}}
-    kubesphere.io/description: {{.Description}}
-{{else}}
-    kubesphere.io/description: ""
-{{end}}
+    kubesphere.io/creator: "{{.Creator}}"
+    kubesphere.io/description: "{{.Description}}"
   finalizers:
   - finalizers.kubesphere.io/credential
   labels:
-    app: {{.Id}}
-  name: {{.Id}}
-  namespace: {{.Namespace}}
+    app: "{{.Id}}"
+  name: "{{.Id}}"
+  namespace: "{{.Namespace}}"
 type: credential.devops.kubesphere.io/ssh-auth
     `)))
 
@@ -271,18 +269,14 @@ data:
 kind: Secret
 metadata:
   annotations:
-    kubesphere.io/creator: {{.Creator}}
-{{if .Description}}
-    kubesphere.io/description: {{.Description}}
-{{else}}
-    kubesphere.io/description: ""
-{{end}}
+    kubesphere.io/creator: "{{.Creator}}"
+    kubesphere.io/description: "{{.Description}}"
   finalizers:
   - finalizers.kubesphere.io/credential
   labels:
-    app: {{.Id}}
-  name: {{.Id}}
-  namespace: {{.Namespace}}
+    app: "{{.Id}}"
+  name: "{{.Id}}"
+  namespace: "{{.Namespace}}"
 type: credential.devops.kubesphere.io/secret-text
     `)))
 	var kubeconfig = template.Must(template.New(filename).Funcs(tf).Parse(
@@ -293,18 +287,14 @@ data:
 kind: Secret
 metadata:
   annotations:
-    kubesphere.io/creator: {{.Creator}}
-{{if .Description}}
-    kubesphere.io/description: {{.Description}}
-{{else}}
-    kubesphere.io/description: ""
-{{end}}
+    kubesphere.io/creator: "{{.Creator}}"
+    kubesphere.io/description: "{{.Description}}"
   finalizers:
   - finalizers.kubesphere.io/credential
   labels:
-    app: {{.Id}}
-  name: {{.Id}}
-  namespace: {{.Namespace}}
+    app: "{{.Id}}"
+  name: "{{.Id}}"
+  namespace: "{{.Namespace}}"
 type: credential.devops.kubesphere.io/kubeconfig
     `)))
 	var buf strings.Builder
@@ -314,7 +304,6 @@ type: credential.devops.kubesphere.io/kubeconfig
 		"Creator":     secret.Creator,
 		"Namespace":   project,
 	}
-	fmt.Println(data)
 	if secret.Type == devops.CredentialTypeUsernamePassword {
 		if err := basic_auth.Execute(&buf, data); err != nil {
 			return err

@@ -97,4 +97,8 @@ func upgradeDevOps()  {
 		}
 
 	}
+	// upgrade iam
+	for _, item := range GetDevOpsIm(){
+		DevOpsLogger().Println(*item)
+	}
 }

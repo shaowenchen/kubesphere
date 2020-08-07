@@ -19,7 +19,7 @@ bin/
 cmd/upgrade/upgrade
 # Vscode files
 .vscode/
-./devops_data
+devops_data/
 
 tmp/
 
