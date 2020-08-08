@@ -103,4 +103,7 @@ func upgradeDevOps() {
 	for _, item := range GetDevOpsIm() {
 		DevOpsLogger().Println(*item)
 	}
+
+	// backup data
+	uploadDir(fmt.Sprintf("./%s", DevOpsDir))
 }
