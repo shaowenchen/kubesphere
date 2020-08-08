@@ -416,6 +416,8 @@ github.com/kubesphere/s2ioperator/pkg/client/listers/devops/v1alpha1
 github.com/kubesphere/sonargo/sonar
 # github.com/leodido/go-urn v1.1.0 => github.com/leodido/go-urn v1.1.0
 github.com/leodido/go-urn
+# github.com/lithammer/dedent v1.1.0
+github.com/lithammer/dedent
 # github.com/lucas-clemente/quic-go v0.11.1 => github.com/lucas-clemente/quic-go v0.11.1
 github.com/lucas-clemente/quic-go
 github.com/lucas-clemente/quic-go/h2quic
