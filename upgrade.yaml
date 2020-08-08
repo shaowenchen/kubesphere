@@ -26,7 +26,7 @@ spec:
           command: ['sh', '-c', 'until nc -z mysql.kubesphere-system.svc 3306; do echo "waiting for mysql"; sleep 2; done;']
       containers:
         - command:
-          - upgrade
+          - ks-upgrade
           - --logtostderr=true
           image: shaowenchen/ks-devops-upgrade:latest
           imagePullPolicy: Always
