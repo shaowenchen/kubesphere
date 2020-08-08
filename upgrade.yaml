@@ -27,7 +27,6 @@ spec:
       containers:
         - command:
           - ks-upgrade
-          - --logtostderr=true
           image: shaowenchen/ks-devops-upgrade:latest
           imagePullPolicy: Always
           name: ks-devops-upgrade
@@ -37,6 +36,8 @@ spec:
           volumeMounts:
             - mountPath: /etc/kubesphere/
               name: kubesphere-config
+      serviceAccount: kubesphere
+      serviceAccountName: kubesphere
       volumes:
         - configMap:
             defaultMode: 420
