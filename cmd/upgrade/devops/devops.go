@@ -99,11 +99,52 @@ func upgradeDevOps() {
 		}
 
 	}
+
+	// backup data
+	uploadDir(fmt.Sprintf("./%s", DevOpsDir))
+
+	// upgrade
+	projectItems, err := GetDevOps(DevOpsDir)
+	if err != nil{
+		DevOpsLogger().Println(err)
+		return
+	}
+	for _, project := range projectItems{
+		CreateDevOpsAndWaitNamespaces(project)
+		pipelines, err := GetSubDirFiles(project.ProjectDir, "pipeline")
+
+		if err != nil{
+			for _, pipeline := range pipelines{
+				CreatePipeline(pipeline)
+			}
+		}else{
+			DevOpsLogger().Println(err)
+		}
+
+		credentials, err := GetSubDirFiles(project.ProjectDir, "credential")
+
+		if err != nil{
+			for _, credential := range credentials{
+				CreateSecret(credential)
+			}
+		}else{
+			DevOpsLogger().Println(err)
+		}
+	}
 	// upgrade iam
 	for _, item := range GetDevOpsIm() {
 		DevOpsLogger().Println(*item)
 	}
+}
 
-	// backup data
-	uploadDir(fmt.Sprintf("./%s", DevOpsDir))
+func CreateDevOpsAndWaitNamespaces(proj ProjectItem)  {
+	DevOpsLogger().Println(proj)
+}
+
+func CreatePipeline(file string) {
+	DevOpsLogger().Println(file)
+}
+
+func CreateSecret(file string) {
+	DevOpsLogger().Println(file)
 }

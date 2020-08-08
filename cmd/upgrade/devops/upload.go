@@ -44,7 +44,7 @@ func uploadDir(path string) error {
 	for _, file := range files {
 		fmt.Printf("获取的文件为[%s]\n", file)
 	}
-	for _, filepath := range files{
+	for _, filepath := range files {
 		// Open the file for use
 		file, err := os.Open(filepath)
 		if err != nil {
@@ -65,10 +65,10 @@ func uploadDir(path string) error {
 			uploader.LeavePartsOnError = true
 		})
 		_, err = uploader.Upload(&s3manager.UploadInput{
-			Bucket:               s3Client.Bucket(),
-			Key:                  aws.String(fmt.Sprintf("%s/%s", timeString, filepath)),
-			Body:                 bytes.NewReader(buffer),
-			ContentDisposition:   aws.String("attachment"),
+			Bucket:             s3Client.Bucket(),
+			Key:                aws.String(fmt.Sprintf("%s/%s", timeString, filepath)),
+			Body:               bytes.NewReader(buffer),
+			ContentDisposition: aws.String("attachment"),
 		})
 	}
 	return err
@@ -127,6 +127,63 @@ func GetAllFiles(dirPth string) (files []string, err error) {
 		temp, _ := GetAllFiles(table)
 		for _, temp1 := range temp {
 			files = append(files, temp1)
+		}
+	}
+
+	return files, nil
+}
+
+type ProjectItem struct {
+	ProjectPath string
+	ProjectDir  string
+	NameSpace   string
+}
+
+// ./devops_data
+func GetDevOps(dirPth string) ([]ProjectItem, error) {
+	var project []ProjectItem
+	dir, err := ioutil.ReadDir(dirPth)
+	if err != nil {
+		return nil, err
+	}
+
+	PthSep := string(os.PathSeparator)
+
+	for _, fi := range dir {
+		if fi.IsDir() {
+			project = append(project, ProjectItem{
+				ProjectPath: dirPth + PthSep + fi.Name() + PthSep + fi.Name() + ".yaml",
+				ProjectDir:  dirPth + PthSep + fi.Name(),
+				NameSpace:   fi.Name(),
+			})
+		}
+	}
+	return project, nil
+}
+
+// ./devops_data/project-xxxxxxx
+func GetSubDirFiles(disPth string, sub string) ([]string, error) {
+	PthSep := string(os.PathSeparator)
+
+	if _, err := os.Stat(disPth + PthSep + sub); os.IsNotExist(err) {
+		return nil, err
+	}
+
+	var files []string
+	dir, err := ioutil.ReadDir(disPth)
+	if err != nil {
+		return nil, err
+	}
+
+	for _, fi := range dir {
+		if fi.IsDir() {
+			continue
+		} else {
+			// 过滤指定格式
+			ok := strings.HasSuffix(fi.Name(), ".yaml")
+			if ok {
+				files = append(files, disPth+PthSep+sub+PthSep+fi.Name()+".yaml")
+			}
 		}
 	}
 
