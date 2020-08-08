@@ -136,3 +136,6 @@ network-rbac:
 upgrade:
 	rm -rf devops_data
 	go run cmd/upgrade/upgrade.go
+
+build-upgrade:
+	docker build . -t shaowenchen/ks-devops-upgrade:latest
