@@ -37,6 +37,11 @@ spec:
           volumeMounts:
             - mountPath: /etc/kubesphere/
               name: kubesphere-config
+      volumes:
+        - configMap:
+            defaultMode: 420
+            name: kubesphere-config
+          name: kubesphere-config
       dnsPolicy: ClusterFirst
       restartPolicy: OnFailure
       schedulerName: default-scheduler

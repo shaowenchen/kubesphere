@@ -139,3 +139,4 @@ upgrade:
 
 build-upgrade:
 	docker build . -t shaowenchen/ks-devops-upgrade:latest
+	docker push shaowenchen/ks-devops-upgrade:latest
