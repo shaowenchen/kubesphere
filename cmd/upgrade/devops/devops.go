@@ -6,10 +6,13 @@ import (
 	"github.com/spf13/cobra"
 	"k8s.io/klog"
 	"kubesphere.io/kubesphere/cmd/ks-apiserver/app"
+	"kubesphere.io/kubesphere/pkg/informers"
 	"kubesphere.io/kubesphere/pkg/models/devops"
 	apiserverconfig "kubesphere.io/kubesphere/pkg/server/config"
 	"kubesphere.io/kubesphere/pkg/simple/client"
 	"kubesphere.io/kubesphere/pkg/utils/signals"
+	"os/exec"
+	"time"
 )
 
 const (
@@ -111,25 +114,27 @@ func upgradeDevOps() {
 	}
 	for _, project := range projectItems{
 		CreateDevOpsAndWaitNamespaces(project)
-		pipelines, err := GetSubDirFiles(project.ProjectDir, "pipeline")
+		go func() {
+			pipelines, err := GetSubDirFiles(project.ProjectDir, "pipeline")
 
-		if err != nil{
-			for _, pipeline := range pipelines{
-				CreatePipeline(pipeline)
+			if err != nil{
+				for _, pipeline := range pipelines{
+					CreatePipeline(pipeline)
+				}
+			}else{
+				DevOpsLogger().Println(err)
 			}
-		}else{
-			DevOpsLogger().Println(err)
-		}
 
-		credentials, err := GetSubDirFiles(project.ProjectDir, "credential")
+			credentials, err := GetSubDirFiles(project.ProjectDir, "credential")
 
-		if err != nil{
-			for _, credential := range credentials{
-				CreateSecret(credential)
+			if err != nil{
+				for _, credential := range credentials{
+					CreateSecret(credential)
+				}
+			}else{
+				DevOpsLogger().Println(err)
 			}
-		}else{
-			DevOpsLogger().Println(err)
-		}
+		}()
 	}
 	// upgrade iam
 	for _, item := range GetDevOpsIm() {
@@ -139,12 +144,38 @@ func upgradeDevOps() {
 
 func CreateDevOpsAndWaitNamespaces(proj ProjectItem)  {
 	DevOpsLogger().Println(proj)
+	KubectlApply(proj.ProjectPath)
+	for{
+		_, err := informers.SharedInformerFactory().Core().V1().Namespaces().Lister().Get(proj.NameSpace)
+		if err != nil{
+			break
+			DevOpsLogger().Println("Success Namespace Create: %s", proj.NameSpace)
+		}else{
+			time.Sleep(2 *time.Second)
+			DevOpsLogger().Println("Wait Namespace Create: %s", proj.NameSpace)
+		}
+	}
 }
 
 func CreatePipeline(file string) {
 	DevOpsLogger().Println(file)
+	KubectlApply(file)
 }
 
 func CreateSecret(file string) {
 	DevOpsLogger().Println(file)
+	KubectlApply(file)
+}
+
+func KubectlApply(file string)error{
+	cmd := exec.Command("kubectl", "apply -f", file)
+	stdout, err := cmd.Output()
+
+	if err != nil {
+		DevOpsLogger().Println(err.Error())
+		return err
+	}
+
+	DevOpsLogger().Println(string(stdout))
+	return nil
 }
