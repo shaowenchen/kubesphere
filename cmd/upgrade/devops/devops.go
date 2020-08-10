@@ -164,7 +164,7 @@ func CreateDevOpsAndWaitNamespaces(proj ProjectItem)  {
 	DevOpsLogger().Println("Apply DevOps: ", proj.ProjectPath)
 	KubectlApply(proj.ProjectPath)
 	for{
-		_, err := informers.SharedInformerFactory().Core().V1().Namespaces().Lister().Get(proj.NameSpace)
+		_, err := informers.SharedInformerFactory().Core().V1().Namespaces().Lister().Get(GetVaildName(proj.NameSpace))
 		if err == nil{
 			DevOpsLogger().Println("Success Namespace Create:", proj.NameSpace)
 			break
