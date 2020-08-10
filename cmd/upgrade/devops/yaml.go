@@ -112,7 +112,7 @@ metadata:
   namespace: "{{ getValidName .Namespace}}"
 spec:
   type: multi-branch-pipeline
-  multi-branch-pipeline:
+  multi_branch_pipeline:
     {{ getYaml .Pipeline }}
 status: {}
     `)))
