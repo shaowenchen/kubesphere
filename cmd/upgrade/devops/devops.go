@@ -114,7 +114,7 @@ func upgradeDevOps() {
 
 	// upgrade
 	DevOpsLogger().Println("Start Upgrade to 3.0")
-	projectItems, err := GetDevOps(DevOpsDir)
+	projectItems, err := GetDevOps(fmt.Sprintf("./%s", DevOpsDir))
 	if err != nil {
 		DevOpsLogger().Println(err)
 		return
@@ -124,7 +124,7 @@ func upgradeDevOps() {
 		CreateDevOpsAndWaitNamespaces(project)
 		pipelines, err := GetSubDirFiles(project.ProjectDir, "pipeline")
 
-		if err != nil {
+		if err == nil {
 			for _, pipeline := range pipelines {
 				CreatePipeline(pipeline)
 			}
@@ -134,7 +134,7 @@ func upgradeDevOps() {
 
 		credentials, err := GetSubDirFiles(project.ProjectDir, "credential")
 
-		if err != nil {
+		if err == nil {
 			for _, credential := range credentials {
 				CreateSecret(credential)
 			}
@@ -178,12 +178,6 @@ func CreateSecret(file string) {
 func KubectlApply(file string) error {
 	cmd := exec.Command("/bin/sh", "-c", "kubectl apply -f "+file)
 	stdout, err := cmd.Output()
-
-	if err != nil {
-		DevOpsLogger().Println(err)
-		return err
-	}
-
 	DevOpsLogger().Println(string(stdout))
-	return nil
+	return err
 }

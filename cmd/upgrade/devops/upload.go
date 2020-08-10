@@ -170,7 +170,7 @@ func GetSubDirFiles(disPth string, sub string) ([]string, error) {
 	}
 
 	var files []string
-	dir, err := ioutil.ReadDir(disPth)
+	dir, err := ioutil.ReadDir(disPth + PthSep + sub)
 	if err != nil {
 		return nil, err
 	}
@@ -182,7 +182,7 @@ func GetSubDirFiles(disPth string, sub string) ([]string, error) {
 			// 过滤指定格式
 			ok := strings.HasSuffix(fi.Name(), ".yaml")
 			if ok {
-				files = append(files, disPth+PthSep+sub+PthSep+fi.Name()+".yaml")
+				files = append(files, disPth+PthSep+sub+PthSep+fi.Name())
 			}
 		}
 	}
