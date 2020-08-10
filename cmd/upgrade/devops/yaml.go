@@ -45,7 +45,7 @@ func GenerateDevOpsProjectYaml(filename string, workspaceName string) error {
 		return err
 	}
 
-	var tmpl = template.Must(template.New(filename).Parse(
+	var tmpl = template.Must(template.New(filename).Funcs(tf).Parse(
 		dedent.Dedent(`---
 apiVersion: devops.kubesphere.io/v1alpha3
 kind: DevOpsProject
@@ -57,14 +57,7 @@ metadata:
   - devopsproject.finalizers.kubesphere.io
   labels:
     kubesphere.io/workspace: {{ .workspace }}
-  name: {{ .filename }}
-  ownerReferences:
-  - apiVersion: {{ .apiVersion }}
-    blockOwnerDeletion: true
-    controller: true
-    kind: Workspace
-    name: {{ .workspace }}
-    uid: 04e1dbcd-63af-45de-998e-ec39042193cc
+  name: {{ getValidName .filename }}
     `)))
 	var buf strings.Builder
 	variables := map[string]string {
@@ -97,8 +90,8 @@ metadata:
     kubesphere.io/creator: admin
   finalizers:
   - pipeline.finalizers.kubesphere.io
-  name: "{{.Pipeline.Name}}"
-  namespace: "{{.Namespace}}"
+  name: "{{ getValidName .Pipeline.Name}}"
+  namespace: "{{ getValidName .Namespace}}"
 spec:
   type: pipeline
   pipeline:
@@ -115,8 +108,8 @@ metadata:
     kubesphere.io/creator: admin
   finalizers:
   - pipeline.finalizers.kubesphere.io
-  name: "{{.Pipeline.Name}}"
-  namespace: "{{.Namespace}}"
+  name: "{{ getValidName .Pipeline.Name}}"
+  namespace: "{{ getValidName .Namespace}}"
 spec:
   type: multi-branch-pipeline
   multi-branch-pipeline:
@@ -171,9 +164,9 @@ metadata:
   finalizers:
   - finalizers.kubesphere.io/credential
   labels:
-    app: "{{.Id}}"
-  name: "{{.Id}}"
-  namespace: "{{.Namespace}}"
+    app: "{{getValidName .Id}}"
+  name: "{{getValidName .Id}}"
+  namespace: "{{getValidName .Namespace}}"
 type: credential.devops.kubesphere.io/basic-auth
     `)))
 
@@ -192,9 +185,9 @@ metadata:
   finalizers:
   - finalizers.kubesphere.io/credential
   labels:
-    app: "{{.Id}}"
-  name: "{{.Id}}"
-  namespace: "{{.Namespace}}"
+    app: "{{ getValidName .Id}}"
+  name: "{{ getValidName .Id}}"
+  namespace: "{{ getValidName .Namespace}}"
 type: credential.devops.kubesphere.io/ssh-auth
     `)))
 
@@ -211,9 +204,9 @@ metadata:
   finalizers:
   - finalizers.kubesphere.io/credential
   labels:
-    app: "{{.Id}}"
-  name: "{{.Id}}"
-  namespace: "{{.Namespace}}"
+    app: "{{ getValidName .Id }}"
+  name: "{{ getValidName .Id }}"
+  namespace: "{{ getValidName .Namespace }}"
 type: credential.devops.kubesphere.io/secret-text
     `)))
 	var kubeconfig = template.Must(template.New(filename).Funcs(tf).Parse(
@@ -229,9 +222,9 @@ metadata:
   finalizers:
   - finalizers.kubesphere.io/credential
   labels:
-    app: "{{.Id}}"
-  name: "{{.Id}}"
-  namespace: "{{.Namespace}}"
+    app: "{{ getValidName .Id }}"
+  name: "{{ getValidName .Id }}"
+  namespace: "{{ getValidName .Namespace }}"
 type: credential.devops.kubesphere.io/kubeconfig
     `)))
 	var buf strings.Builder
@@ -297,6 +290,10 @@ var tf = template.FuncMap{
 			return replaceKey(string(pyaml))
 		}
 	},
+	"getValidName": func (old string) string{
+		//return old
+	    return GetVaildName(old)
+    },
 }
 
 func replaceKey(old string) string{

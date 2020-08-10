@@ -12,6 +12,7 @@ import (
 	"kubesphere.io/kubesphere/pkg/simple/client"
 	"kubesphere.io/kubesphere/pkg/utils/signals"
 	"os/exec"
+	"sync"
 	"time"
 )
 
@@ -71,9 +72,10 @@ func upgradeDevOps() {
 	//CreateDir(dataDir)
 
 	// query devops
+	DevOpsLogger().Println("Start Query Old Data from DB and Jenkins")
 	for _, project := range projects {
 		GenerateDevOpsProjectYaml(project.ProjectId, project.Workspace)
-		DevOpsLogger().Println(project.ProjectId)
+		DevOpsLogger().Println("Current DevOps Project: ", project.ProjectId)
 		pipelinesByte, err := QueryPipelineList(project.ProjectId)
 		if err != nil {
 			continue
@@ -90,6 +92,7 @@ func upgradeDevOps() {
 		}
 		// query pipeline
 		for _, pipeline := range pipelineList.Items {
+			DevOpsLogger().Println("Current Pipeline: ", pipeline.Name)
 			pipelineObj, err := devops.GetProjectPipeline(project.ProjectId, pipeline.Name)
 			if err == nil {
 				GeneratePipelineYaml(project.ProjectId, pipeline.Name, *pipelineObj)
@@ -98,23 +101,36 @@ func upgradeDevOps() {
 		// query secret
 		secretList, err := QuerySecret(project.ProjectId, "_")
 		for _, secret := range secretList {
+			DevOpsLogger().Println("Current Secret: ", secret.Id)
 			GenerateSecretYaml(project.ProjectId, secret.Id, secret)
 		}
 
 	}
+	DevOpsLogger().Println("End Query Old Data from DB and Jenkins")
+
 
 	// backup data
+	DevOpsLogger().Println("Start Upload to S3")
 	uploadDir(fmt.Sprintf("./%s", DevOpsDir))
+	DevOpsLogger().Println("End Upload to S3")
+
 
 	// upgrade
+	DevOpsLogger().Println("Start Upgrade to 3.0")
 	projectItems, err := GetDevOps(DevOpsDir)
 	if err != nil{
 		DevOpsLogger().Println(err)
 		return
 	}
+
+	// init sync wait
+	var wg sync.WaitGroup
+	wg.Add(len(projectItems))
+
 	for _, project := range projectItems{
 		CreateDevOpsAndWaitNamespaces(project)
 		go func() {
+			defer wg.Done()
 			pipelines, err := GetSubDirFiles(project.ProjectDir, "pipeline")
 
 			if err != nil{
@@ -136,6 +152,8 @@ func upgradeDevOps() {
 			}
 		}()
 	}
+	DevOpsLogger().Println("End upgrade 3.0")
+
 	// upgrade iam
 	for _, item := range GetDevOpsIm() {
 		DevOpsLogger().Println(*item)
@@ -143,36 +161,36 @@ func upgradeDevOps() {
 }
 
 func CreateDevOpsAndWaitNamespaces(proj ProjectItem)  {
-	DevOpsLogger().Println(proj)
+	DevOpsLogger().Println("Apply DevOps: ", proj.ProjectPath)
 	KubectlApply(proj.ProjectPath)
 	for{
 		_, err := informers.SharedInformerFactory().Core().V1().Namespaces().Lister().Get(proj.NameSpace)
-		if err != nil{
+		if err == nil{
+			DevOpsLogger().Println("Success Namespace Create:", proj.NameSpace)
 			break
-			DevOpsLogger().Println("Success Namespace Create: %s", proj.NameSpace)
 		}else{
 			time.Sleep(2 *time.Second)
-			DevOpsLogger().Println("Wait Namespace Create: %s", proj.NameSpace)
+			DevOpsLogger().Println("Wait Namespace Create:", proj.NameSpace)
 		}
 	}
 }
 
 func CreatePipeline(file string) {
-	DevOpsLogger().Println(file)
+	DevOpsLogger().Println("Apply Pipeline: ", file)
 	KubectlApply(file)
 }
 
 func CreateSecret(file string) {
-	DevOpsLogger().Println(file)
+	DevOpsLogger().Println("Apply Secret: ", file)
 	KubectlApply(file)
 }
 
 func KubectlApply(file string)error{
-	cmd := exec.Command("kubectl", "apply -f", file)
+	cmd := exec.Command("/bin/sh", "-c", "kubectl apply -f " + file)
 	stdout, err := cmd.Output()
 
 	if err != nil {
-		DevOpsLogger().Println(err.Error())
+		DevOpsLogger().Println(err)
 		return err
 	}
 

@@ -42,7 +42,7 @@ func uploadDir(path string) error {
 
 	files, _ := GetAllFiles(path)
 	for _, file := range files {
-		fmt.Printf("获取的文件为[%s]\n", file)
+		fmt.Printf("Find [%s]\n", file)
 	}
 	for _, filepath := range files {
 		// Open the file for use
@@ -188,4 +188,8 @@ func GetSubDirFiles(disPth string, sub string) ([]string, error) {
 	}
 
 	return files, nil
+}
+
+func GetVaildName(old string) string {
+	return strings.ToLower(strings.Replace(old, "project-", "", -1))
 }
