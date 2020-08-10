@@ -12,7 +12,6 @@ import (
 	"kubesphere.io/kubesphere/pkg/simple/client"
 	"kubesphere.io/kubesphere/pkg/utils/signals"
 	"os/exec"
-	"sync"
 	"time"
 )
 
@@ -108,49 +107,40 @@ func upgradeDevOps() {
 	}
 	DevOpsLogger().Println("End Query Old Data from DB and Jenkins")
 
-
 	// backup data
 	DevOpsLogger().Println("Start Upload to S3")
 	uploadDir(fmt.Sprintf("./%s", DevOpsDir))
 	DevOpsLogger().Println("End Upload to S3")
 
-
 	// upgrade
 	DevOpsLogger().Println("Start Upgrade to 3.0")
 	projectItems, err := GetDevOps(DevOpsDir)
-	if err != nil{
+	if err != nil {
 		DevOpsLogger().Println(err)
 		return
 	}
 
-	// init sync wait
-	var wg sync.WaitGroup
-	wg.Add(len(projectItems))
-
-	for _, project := range projectItems{
+	for _, project := range projectItems {
 		CreateDevOpsAndWaitNamespaces(project)
-		go func() {
-			defer wg.Done()
-			pipelines, err := GetSubDirFiles(project.ProjectDir, "pipeline")
+		pipelines, err := GetSubDirFiles(project.ProjectDir, "pipeline")
 
-			if err != nil{
-				for _, pipeline := range pipelines{
-					CreatePipeline(pipeline)
-				}
-			}else{
-				DevOpsLogger().Println(err)
+		if err != nil {
+			for _, pipeline := range pipelines {
+				CreatePipeline(pipeline)
 			}
+		} else {
+			DevOpsLogger().Println(err)
+		}
 
-			credentials, err := GetSubDirFiles(project.ProjectDir, "credential")
+		credentials, err := GetSubDirFiles(project.ProjectDir, "credential")
 
-			if err != nil{
-				for _, credential := range credentials{
-					CreateSecret(credential)
-				}
-			}else{
-				DevOpsLogger().Println(err)
+		if err != nil {
+			for _, credential := range credentials {
+				CreateSecret(credential)
 			}
-		}()
+		} else {
+			DevOpsLogger().Println(err)
+		}
 	}
 	DevOpsLogger().Println("End upgrade 3.0")
 
@@ -160,16 +150,16 @@ func upgradeDevOps() {
 	}
 }
 
-func CreateDevOpsAndWaitNamespaces(proj ProjectItem)  {
+func CreateDevOpsAndWaitNamespaces(proj ProjectItem) {
 	DevOpsLogger().Println("Apply DevOps: ", proj.ProjectPath)
 	KubectlApply(proj.ProjectPath)
-	for{
+	for {
 		_, err := informers.SharedInformerFactory().Core().V1().Namespaces().Lister().Get(GetVaildName(proj.NameSpace))
-		if err == nil{
+		if err == nil {
 			DevOpsLogger().Println("Success Namespace Create:", proj.NameSpace)
 			break
-		}else{
-			time.Sleep(2 *time.Second)
+		} else {
+			time.Sleep(2 * time.Second)
 			DevOpsLogger().Println("Wait Namespace Create:", proj.NameSpace)
 		}
 	}
@@ -185,8 +175,8 @@ func CreateSecret(file string) {
 	KubectlApply(file)
 }
 
-func KubectlApply(file string)error{
-	cmd := exec.Command("/bin/sh", "-c", "kubectl apply -f " + file)
+func KubectlApply(file string) error {
+	cmd := exec.Command("/bin/sh", "-c", "kubectl apply -f "+file)
 	stdout, err := cmd.Output()
 
 	if err != nil {
