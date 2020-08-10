@@ -300,7 +300,7 @@ func replaceKey(old string) string{
 	var new = old
 	var replaceList = map[string]string{
 		"\n": "\n    ",
-		"null": "",
+		"null": "{}",
 		"disableConcurrent": "disable_concurrent",
 		"timertrigger": "timer_trigger",
 		"remotetrigger": "remote_trigger",
