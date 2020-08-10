@@ -41,7 +41,7 @@ func CreateDir(path string) error {
 func GenerateDevOpsProjectYaml(filename string, workspaceName string) error {
 
 	workspace, err := informers.KsSharedInformerFactory().Tenant().V1alpha1().Workspaces().Lister().Get(workspaceName)
-	if err != nil{
+	if err != nil {
 		return err
 	}
 
@@ -60,11 +60,11 @@ metadata:
   name: {{ getValidName .filename }}
     `)))
 	var buf strings.Builder
-	variables := map[string]string {
-		"workspace": workspace.Name,
+	variables := map[string]string{
+		"workspace":  workspace.Name,
 		"apiVersion": workspace.APIVersion,
-		"uid": string(workspace.UID),
-		"filename": filename,
+		"uid":        string(workspace.UID),
+		"filename":   filename,
 	}
 	if err := tmpl.Execute(&buf, variables); err != nil {
 		return err
@@ -272,7 +272,7 @@ var tf = template.FuncMap{
 	},
 	"isProperty": func(obj interface{}, property string) bool {
 		t := reflect.TypeOf(obj)
-		if t.String() == "Ptr"{
+		if t.String() == "Ptr" {
 			t = reflect.TypeOf(obj)
 		}
 		if _, ok := t.FieldByName(property); ok {
@@ -283,51 +283,58 @@ var tf = template.FuncMap{
 	},
 	"getYaml": func(obj interface{}) string {
 		var pyaml, err = yaml.Marshal(obj)
-		if err != nil{
+		if err != nil {
 			DevOpsLogger().Println("%v", err)
 			return ""
-		}else{
+		} else {
 			return replaceKey(string(pyaml))
 		}
 	},
-	"getValidName": func (old string) string{
+	"getValidName": func(old string) string {
 		//return old
-	    return GetVaildName(old)
-    },
+		return GetVaildName(old)
+	},
 }
 
-func replaceKey(old string) string{
+func replaceKey(old string) string {
 	var new = old
 	var replaceList = map[string]string{
 		"\n": "\n    ",
-		"null": "{}",
-		"disableConcurrent": "disable_concurrent",
-		"timertrigger": "timer_trigger",
-		"remotetrigger": "remote_trigger",
-		"gitsource": "git_source",
-		"githubsource": "github_source",
-		"svnsource": "svn_source",
-		"singlesvnsource": "single_svn_source",
-		"bitbucketserversource": "bitbucket_server_source",
-		"scriptpath": "script_path",
-		"multibranchjobtrigger": "multibranch_job_trigger",
-		"scmid": "scm_id",
-		"credentialid": "credential_id",
-		"discoverbranches": "discover_branches",
-		"gitcloneoption": "git_clone_option",
-		"regexfilter": "regex_filter",
-		"apiuri": "api_uri",
-		"discoverprfromorigin": "discover_pr_from_origin",
-		"discoverprfromforks": "discover_pr_from_forks",
-		"gitclone_option": "git_clone_option",
+		// "null": "{}",
+		"disableConcurrent":           "disable_concurrent",
+		"timertrigger":                "timer_trigger",
+		"remotetrigger":               "remote_trigger",
+		"gitsource":                   "git_source",
+		"githubsource":                "github_source",
+		"svnsource":                   "svn_source",
+		"singlesvnsource":             "single_svn_source",
+		"bitbucketserversource":       "bitbucket_server_source",
+		"scriptpath":                  "script_path",
+		"multibranchjobtrigger":       "multibranch_job_trigger",
+		"scmid":                       "scm_id",
+		"credentialid":                "credential_id",
+		"discoverbranches":            "discover_branches",
+		"gitcloneoption":              "git_clone_option",
+		"regexfilter":                 "regex_filter",
+		"apiuri":                      "api_uri",
+		"discoverprfromorigin":        "discover_pr_from_origin",
+		"discoverprfromforks":         "discover_pr_from_forks",
+		"gitclone_option":             "git_clone_option",
 		"createaction_job_to_trigger": "create_action_job_to_trigger",
 		"deleteaction_job_to_trigger": "delete_action_job_to_trigger",
-		"daystokeep": "days_to_keep",
-		"numtokeep": "num_to_keep",
-		"defaultvalue": "default_value",
+		"daystokeep":                  "days_to_keep",
+		"numtokeep":                   "num_to_keep",
+		"defaultvalue":                "default_value",
 	}
-	for key, value := range replaceList{
+	for key, value := range replaceList {
 		new = strings.Replace(new, key, value, -1)
 	}
-	return new
+	string_slice := strings.Split(new, "\n")
+	string_target := []string{}
+	for _, item := range string_slice {
+		if !strings.Contains(item, "null") {
+			string_target = append(string_target, item)
+		}
+	}
+	return strings.Join(string_target, "\n")
 }
