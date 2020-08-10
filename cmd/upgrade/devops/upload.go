@@ -191,5 +191,6 @@ func GetSubDirFiles(disPth string, sub string) ([]string, error) {
 }
 
 func GetVaildName(old string) string {
-	return strings.ToLower(strings.Replace(old, "project-", "", -1))
+	//return strings.ToLower(strings.Replace(old, "project-", "", -1))
+	return strings.ToLower(old)
 }

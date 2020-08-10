@@ -156,11 +156,11 @@ func CreateDevOpsAndWaitNamespaces(proj ProjectItem) {
 	for {
 		_, err := informers.SharedInformerFactory().Core().V1().Namespaces().Lister().Get(GetVaildName(proj.NameSpace))
 		if err == nil {
-			DevOpsLogger().Println("Success Namespace Create:", proj.NameSpace)
+			DevOpsLogger().Println("Success Namespace Create:", GetVaildName(proj.NameSpace))
 			break
 		} else {
 			time.Sleep(2 * time.Second)
-			DevOpsLogger().Println("Wait Namespace Create:", proj.NameSpace)
+			DevOpsLogger().Println("Wait Namespace Create:", GetVaildName(proj.NameSpace))
 		}
 	}
 }
@@ -177,7 +177,10 @@ func CreateSecret(file string) {
 
 func KubectlApply(file string) error {
 	cmd := exec.Command("/bin/sh", "-c", "kubectl apply -f "+file)
-	stdout, err := cmd.Output()
-	DevOpsLogger().Println(string(stdout))
+	out, err := cmd.CombinedOutput()
+	if err != nil {
+		DevOpsLogger().Println(err)
+	}
+	DevOpsLogger().Println(string(out))
 	return err
 }
