@@ -38,7 +38,7 @@ func CreateDir(path string) error {
 	return nil
 }
 
-func GenerateDevOpsProjectYaml(filename string, workspaceName string) error {
+func GenerateDevOpsProjectYaml(filename string, creator string, showName string, workspaceName string) error {
 
 	workspace, err := informers.KsSharedInformerFactory().Tenant().V1alpha1().Workspaces().Lister().Get(workspaceName)
 	if err != nil {
@@ -51,13 +51,14 @@ apiVersion: devops.kubesphere.io/v1alpha3
 kind: DevOpsProject
 metadata:
   annotations:
-    kubesphere.io/creator: admin
+    kubesphere.io/creator: {{ .creator }}
     kubesphere.io/workspace: {{ .workspace }}
   finalizers:
   - devopsproject.finalizers.kubesphere.io
   labels:
     kubesphere.io/workspace: {{ .workspace }}
   name: {{ getValidName .filename }}
+  generateName: {{ .name }}
     `)))
 	var buf strings.Builder
 	variables := map[string]string{
@@ -65,6 +66,8 @@ metadata:
 		"apiVersion": workspace.APIVersion,
 		"uid":        string(workspace.UID),
 		"filename":   filename,
+		"creator": creator,
+		"name": showName,
 	}
 	if err := tmpl.Execute(&buf, variables); err != nil {
 		return err

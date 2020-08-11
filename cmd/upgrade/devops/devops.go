@@ -73,7 +73,7 @@ func upgradeDevOps() {
 	// query devops
 	DevOpsLogger().Println("Start Query Old Data from DB and Jenkins")
 	for _, project := range projects {
-		GenerateDevOpsProjectYaml(project.ProjectId, project.Workspace)
+		GenerateDevOpsProjectYaml(project.ProjectId, project.Creator, project.Name, project.Workspace)
 		DevOpsLogger().Println("Current DevOps Project: ", project.ProjectId)
 		pipelinesByte, err := QueryPipelineList(project.ProjectId)
 		if err != nil {
