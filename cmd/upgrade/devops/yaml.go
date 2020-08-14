@@ -66,8 +66,8 @@ metadata:
 		"apiVersion": workspace.APIVersion,
 		"uid":        string(workspace.UID),
 		"filename":   filename,
-		"creator": creator,
-		"name": showName,
+		"creator":    creator,
+		"name":       showName,
 	}
 	if err := tmpl.Execute(&buf, variables); err != nil {
 		return err
@@ -328,6 +328,7 @@ func replaceKey(old string) string {
 		"daystokeep":                  "days_to_keep",
 		"numtokeep":                   "num_to_keep",
 		"defaultvalue":                "default_value",
+		"sourcetype":                  "source_type",
 	}
 	for key, value := range replaceList {
 		new = strings.Replace(new, key, value, -1)
