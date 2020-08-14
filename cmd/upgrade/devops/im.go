@@ -31,7 +31,7 @@ func GetDevOpsIm() []*DevOpsIM {
 			continue
 		}
 		for _, memeber := range membershipList {
-			result = append(result, &DevOpsIM{workspace: project.Workspace, devops: project.ProjectId, username: memeber.Username, role: memeber.Role})
+			result = append(result, &DevOpsIM{workspace: project.Workspace, devops: GetVaildName(project.ProjectId), username: memeber.Username, role: memeber.Role})
 		}
 	}
 
