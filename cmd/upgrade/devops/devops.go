@@ -145,8 +145,12 @@ func upgradeDevOps() {
 	DevOpsLogger().Println("End upgrade 3.0")
 
 	// upgrade iam
-	for _, item := range GetDevOpsIm() {
-		DevOpsLogger().Println(*item)
+	//for _, item := range GetDevOpsIm() {
+	//	DevOpsLogger().Println(*item)
+	//}
+	err = migrateDevOpsRoleBinding(GetDevOpsIm())
+	if err != nil{
+		DevOpsLogger().Error(err)
 	}
 }
 

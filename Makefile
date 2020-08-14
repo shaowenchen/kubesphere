@@ -138,5 +138,5 @@ upgrade:
 	go run cmd/upgrade/upgrade.go
 
 build-upgrade:
-	docker build . -t shaowenchen/ks-devops-upgrade:latest
-	docker push shaowenchen/ks-devops-upgrade:latest
+	docker build . -t kubespheredev/ks-devops:flyway-v3.0.0
+	docker push kubespheredev/ks-devops:flyway-v3.0.0
