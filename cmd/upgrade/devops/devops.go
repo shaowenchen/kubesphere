@@ -53,6 +53,9 @@ func NewDevOpsCommand() *cobra.Command {
 }
 
 func upgradeDevOps() {
+	// for test pipeline
+	//pipelineObj, err := devops.GetProjectPipeline("project-Jp1ER9gr9yMl", "github")
+	//DevOpsLogger().Error(pipelineObj, err)
 
 	// query devops
 	projects, err := QueryDevops()
@@ -69,7 +72,6 @@ func upgradeDevOps() {
 	//}
 	//dataDir := fmt.Sprintf("%s/%s", currentDir, DevOpsDir)
 	//CreateDir(dataDir)
-
 	// query devops
 	DevOpsLogger().Println("Start Query Old Data from DB and Jenkins")
 	for _, project := range projects {

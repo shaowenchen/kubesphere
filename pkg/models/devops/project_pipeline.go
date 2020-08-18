@@ -567,28 +567,28 @@ func (s *GithubSource) fromEtree(source *etree.Element) *GithubSource {
 				Trust:    4,
 			}
 		}
-		if cloneTrait := traits.SelectElement(
-			"jenkins.plugins.git.traits.CloneOptionTrait"); cloneTrait != nil {
-			if cloneExtension := cloneTrait.SelectElement(
-				"extension"); cloneExtension != nil {
-				s.CloneOption = &GitCloneOption{}
-				if value, err := strconv.ParseBool(cloneExtension.SelectElement("shallow").Text()); err == nil {
-					s.CloneOption.Shallow = value
-				}
-				if value, err := strconv.ParseInt(cloneExtension.SelectElement("timeout").Text(), 10, 32); err == nil {
-					s.CloneOption.Timeout = int(value)
-				}
-				if value, err := strconv.ParseInt(cloneExtension.SelectElement("depth").Text(), 10, 32); err == nil {
-					s.CloneOption.Depth = int(value)
-				}
+	}
+	if cloneTrait := traits.SelectElement(
+		"jenkins.plugins.git.traits.CloneOptionTrait"); cloneTrait != nil {
+		if cloneExtension := cloneTrait.SelectElement(
+			"extension"); cloneExtension != nil {
+			s.CloneOption = &GitCloneOption{}
+			if value, err := strconv.ParseBool(cloneExtension.SelectElement("shallow").Text()); err == nil {
+				s.CloneOption.Shallow = value
+			}
+			if value, err := strconv.ParseInt(cloneExtension.SelectElement("timeout").Text(), 10, 32); err == nil {
+				s.CloneOption.Timeout = int(value)
+			}
+			if value, err := strconv.ParseInt(cloneExtension.SelectElement("depth").Text(), 10, 32); err == nil {
+				s.CloneOption.Depth = int(value)
 			}
 		}
+	}
 
-		if regexTrait := traits.SelectElement(
-			"jenkins.scm.impl.trait.RegexSCMHeadFilterTrait"); regexTrait != nil {
-			if regex := regexTrait.SelectElement("regex"); regex != nil {
-				s.RegexFilter = regex.Text()
-			}
+	if regexTrait := traits.SelectElement(
+		"jenkins.scm.impl.trait.RegexSCMHeadFilterTrait"); regexTrait != nil {
+		if regex := regexTrait.SelectElement("regex"); regex != nil {
+			s.RegexFilter = regex.Text()
 		}
 	}
 	return s
