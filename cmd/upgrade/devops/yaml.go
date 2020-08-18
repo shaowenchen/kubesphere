@@ -38,7 +38,7 @@ func CreateDir(path string) error {
 	return nil
 }
 
-func GenerateDevOpsProjectYaml(filename string, creator string, showName string, workspaceName string) error {
+func GenerateDevOpsProjectYaml(filename string, creator string, showName string, desc string, workspaceName string) error {
 
 	workspace, err := informers.KsSharedInformerFactory().Tenant().V1alpha1().Workspaces().Lister().Get(workspaceName)
 	if err != nil {
@@ -53,6 +53,7 @@ metadata:
   annotations:
     kubesphere.io/creator: {{ .creator }}
     kubesphere.io/workspace: {{ .workspace }}
+    kubesphere.io/description: {{ .desc }}
   finalizers:
   - devopsproject.finalizers.kubesphere.io
   labels:
@@ -68,6 +69,7 @@ metadata:
 		"filename":   filename,
 		"creator":    creator,
 		"name":       showName,
+		"desc":       desc,
 	}
 	if err := tmpl.Execute(&buf, variables); err != nil {
 		return err
@@ -83,14 +85,14 @@ metadata:
 	return nil
 }
 
-func GeneratePipelineYaml(project string, filename string, pipeline devops.ProjectPipeline) error {
+func GeneratePipelineYaml(project string, filename string, pipeline devops.ProjectPipeline, creator string) error {
 	var pipelineTmpl = template.Must(template.New(filename).Funcs(tf).Parse(
 		dedent.Dedent(`---
 apiVersion: devops.kubesphere.io/v1alpha3
 kind: Pipeline
 metadata:
   annotations:
-    kubesphere.io/creator: admin
+    kubesphere.io/creator: {{ .creator }}
   finalizers:
   - pipeline.finalizers.kubesphere.io
   name: "{{ getValidName .Pipeline.Name}}"
@@ -108,7 +110,7 @@ apiVersion: devops.kubesphere.io/v1alpha3
 kind: Pipeline
 metadata:
   annotations:
-    kubesphere.io/creator: admin
+    kubesphere.io/creator: {{ .creator }}
   finalizers:
   - pipeline.finalizers.kubesphere.io
   name: "{{ getValidName .Pipeline.Name}}"
@@ -124,6 +126,7 @@ status: {}
 		data := map[string]interface{}{
 			"Pipeline":  *pipeline.MultiBranchPipeline,
 			"Namespace": project,
+			"creator": creator,
 		}
 		if err := multiBranchpipelineTmpl.Execute(&buf, data); err != nil {
 			DevOpsLogger().Println("Pipeline: %s, Exception: %v", pipeline, err)
@@ -133,6 +136,7 @@ status: {}
 		data := map[string]interface{}{
 			"Pipeline":  *pipeline.Pipeline,
 			"Namespace": project,
+			"creator": creator,
 		}
 		if err := pipelineTmpl.Execute(&buf, data); err != nil {
 			DevOpsLogger().Println("Pipeline: %s, Exception: %v", pipeline, err)

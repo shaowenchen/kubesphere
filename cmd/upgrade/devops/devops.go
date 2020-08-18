@@ -73,7 +73,7 @@ func upgradeDevOps() {
 	// query devops
 	DevOpsLogger().Println("Start Query Old Data from DB and Jenkins")
 	for _, project := range projects {
-		GenerateDevOpsProjectYaml(project.ProjectId, project.Creator, project.Name, project.Workspace)
+		GenerateDevOpsProjectYaml(project.ProjectId, project.Creator, project.Name, project.Description, project.Workspace)
 		DevOpsLogger().Println("Current DevOps Project: ", project.ProjectId)
 		pipelinesByte, err := QueryPipelineList(project.ProjectId)
 		if err != nil {
@@ -94,14 +94,14 @@ func upgradeDevOps() {
 			DevOpsLogger().Println("Current Pipeline: ", pipeline.Name)
 			pipelineObj, err := devops.GetProjectPipeline(project.ProjectId, pipeline.Name)
 			if err == nil {
-				GeneratePipelineYaml(project.ProjectId, pipeline.Name, *pipelineObj)
+				GeneratePipelineYaml(project.ProjectId, pipeline.Name, *pipelineObj, project.Creator)
 			}
 		}
 		// query secret
 		secretList, err := QuerySecret(project.ProjectId, "_")
 		for _, secret := range secretList {
 			DevOpsLogger().Println("Current Secret: ", secret.Id)
-			GenerateSecretYaml(project.ProjectId, secret.Id, secret)
+			GenerateSecretYaml(project.ProjectId, secret.Id, secret, project.Creator)
 		}
 
 	}
