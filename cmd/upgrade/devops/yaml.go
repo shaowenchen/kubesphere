@@ -311,6 +311,7 @@ func replaceKey(old string) string {
 		"githubsource":                "github_source",
 		"svnsource":                   "svn_source",
 		"singlesvnsource":             "single_svn_source",
+		"singlesvn_source":             "single_svn_source",
 		"bitbucketserversource":       "bitbucket_server_source",
 		"scriptpath":                  "script_path",
 		"multibranchjobtrigger":       "multibranch_job_trigger",
@@ -323,12 +324,13 @@ func replaceKey(old string) string {
 		"discoverprfromorigin":        "discover_pr_from_origin",
 		"discoverprfromforks":         "discover_pr_from_forks",
 		"gitclone_option":             "git_clone_option",
-		"createaction_job_to_trigger": "create_action_job_to_trigger",
-		"deleteaction_job_to_trigger": "delete_action_job_to_trigger",
+		"createactionjobtotrigger": "create_action_job_to_trigger",
+		"deleteactionjobtotrigger": "delete_action_job_to_trigger",
 		"daystokeep":                  "days_to_keep",
 		"numtokeep":                   "num_to_keep",
 		"defaultvalue":                "default_value",
 		"sourcetype":                  "source_type",
+		"cloneoption":                 "git_clone_option",
 	}
 	for key, value := range replaceList {
 		new = strings.Replace(new, key, value, -1)
