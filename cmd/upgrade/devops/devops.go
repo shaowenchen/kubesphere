@@ -101,7 +101,7 @@ func upgradeDevOps() {
 		secretList, err := QuerySecret(project.ProjectId, "_")
 		for _, secret := range secretList {
 			DevOpsLogger().Println("Current Secret: ", secret.Id)
-			GenerateSecretYaml(project.ProjectId, secret.Id, secret, project.Creator)
+			GenerateSecretYaml(project.ProjectId, secret.Id, secret)
 		}
 
 	}
