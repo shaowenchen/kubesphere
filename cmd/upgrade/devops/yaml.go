@@ -51,15 +51,15 @@ apiVersion: devops.kubesphere.io/v1alpha3
 kind: DevOpsProject
 metadata:
   annotations:
-    kubesphere.io/creator: {{ .creator }}
-    kubesphere.io/workspace: {{ .workspace }}
-    kubesphere.io/description: {{ .desc }}
+    kubesphere.io/creator: "{{ .creator }}"
+    kubesphere.io/workspace: "{{ .workspace }}"
+    kubesphere.io/description: "{{ .desc }}"
   finalizers:
   - devopsproject.finalizers.kubesphere.io
   labels:
-    kubesphere.io/workspace: {{ .workspace }}
-  name: {{ getValidName .filename }}
-  generateName: {{ .name }}
+    kubesphere.io/workspace: "{{ .workspace }}"
+  name: "{{ getValidName .filename }}"
+  generateName: "{{ .name }}"
     `)))
 	var buf strings.Builder
 	variables := map[string]string{
@@ -92,7 +92,7 @@ apiVersion: devops.kubesphere.io/v1alpha3
 kind: Pipeline
 metadata:
   annotations:
-    kubesphere.io/creator: {{ .creator }}
+    kubesphere.io/creator: "{{ .creator }}"
   finalizers:
   - pipeline.finalizers.kubesphere.io
   name: "{{ getValidName .Pipeline.Name}}"
@@ -110,7 +110,7 @@ apiVersion: devops.kubesphere.io/v1alpha3
 kind: Pipeline
 metadata:
   annotations:
-    kubesphere.io/creator: {{ .creator }}
+    kubesphere.io/creator: "{{ .creator }}"
   finalizers:
   - pipeline.finalizers.kubesphere.io
   name: "{{ getValidName .Pipeline.Name}}"
