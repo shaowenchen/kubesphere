@@ -37,6 +37,7 @@ import (
 	tenantv1alpha1informers "kubesphere.io/kubesphere/pkg/client/informers/externalversions/tenant/v1alpha1"
 	tenantv1alpha1listers "kubesphere.io/kubesphere/pkg/client/listers/tenant/v1alpha1"
 	"kubesphere.io/kubesphere/pkg/constants"
+	modelsdevops "kubesphere.io/kubesphere/pkg/models/devops"
 	devopsClient "kubesphere.io/kubesphere/pkg/simple/client/devops"
 	"kubesphere.io/kubesphere/pkg/utils/k8sutil"
 	"kubesphere.io/kubesphere/pkg/utils/sliceutil"
@@ -212,6 +213,9 @@ func (c *Controller) syncHandler(key string) error {
 		klog.V(8).Info(err, fmt.Sprintf("could not get devopsproject %s ", key))
 		return err
 	}
+	if state, ok := project.Annotations[devopsv1alpha3.DevOpeProjectSyncStatusAnnoKey]; ok && state == modelsdevops.StatusSuccessful{
+		return nil
+	}
 	copyProject := project.DeepCopy()
 	// DeletionTimestamp.IsZero() means DevOps project has not been deleted.
 	if project.ObjectMeta.DeletionTimestamp.IsZero() {
@@ -322,7 +326,8 @@ func (c *Controller) syncHandler(key string) error {
 			_, err := c.devopsClient.CreateDevOpsProject(copyProject.Status.AdminNamespace)
 			if err != nil {
 				klog.V(8).Info(err, fmt.Sprintf("failed to get project %s ", key))
-				return err
+				copyProject.Annotations[devopsv1alpha3.DevOpeProjectSyncStatusAnnoKey] = modelsdevops.StatusFailed
+				goto SyncCopy
 			}
 		}
 
@@ -331,7 +336,8 @@ func (c *Controller) syncHandler(key string) error {
 		if sliceutil.HasString(project.ObjectMeta.Finalizers, devopsv1alpha3.DevOpsProjectFinalizerName) {
 			if err := c.deleteDevOpsProjectInDevOps(project); err != nil {
 				klog.V(8).Info(err, fmt.Sprintf("failed to delete resource %s in devops", key))
-				return err
+				copyProject.Annotations[devopsv1alpha3.DevOpeProjectSyncStatusAnnoKey] = modelsdevops.StatusFailed
+				goto SyncCopy
 			}
 			project.ObjectMeta.Finalizers = sliceutil.RemoveString(project.ObjectMeta.Finalizers, func(item string) bool {
 				return item == devopsv1alpha3.DevOpsProjectFinalizerName
@@ -343,6 +349,17 @@ func (c *Controller) syncHandler(key string) error {
 				return err
 			}
 		}
+	}
+
+	// if sync isn't successful, remove it from queue and add a new one
+SyncCopy:
+	if !reflect.DeepEqual(project.Annotations[devopsv1alpha3.DevOpeProjectSyncStatusAnnoKey], copyProject.Annotations[devopsv1alpha3.DevOpeProjectSyncStatusAnnoKey]){
+		copyProject.Annotations[devopsv1alpha3.DevOpeProjectSyncStatusAnnoKey] = modelsdevops.GetSyncNowTime()
+	}
+	_, err = c.kubesphereClient.DevopsV1alpha3().DevOpsProjects().Update(copyProject)
+	if err != nil {
+		klog.V(8).Info(err, fmt.Sprintf("failed to update devopsproject %s ", key))
+		return err
 	}
 
 	return nil

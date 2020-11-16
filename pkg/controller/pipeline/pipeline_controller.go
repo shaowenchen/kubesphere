@@ -36,6 +36,7 @@ import (
 	devopsinformers "kubesphere.io/kubesphere/pkg/client/informers/externalversions/devops/v1alpha3"
 	devopslisters "kubesphere.io/kubesphere/pkg/client/listers/devops/v1alpha3"
 	"kubesphere.io/kubesphere/pkg/constants"
+	modelsdevops "kubesphere.io/kubesphere/pkg/models/devops"
 	devopsClient "kubesphere.io/kubesphere/pkg/simple/client/devops"
 	"kubesphere.io/kubesphere/pkg/utils/k8sutil"
 	"kubesphere.io/kubesphere/pkg/utils/sliceutil"
@@ -221,6 +222,10 @@ func (c *Controller) syncHandler(key string) error {
 		return err
 	}
 
+	if state, ok := pipeline.Annotations[devopsv1alpha3.PipelineSyncStatusAnnoKey]; ok && state == modelsdevops.StatusSuccessful {
+		return nil
+	}
+
 	copyPipeline := pipeline.DeepCopy()
 	// DeletionTimestamp.IsZero() means copyPipeline has not been deleted.
 	if copyPipeline.ObjectMeta.DeletionTimestamp.IsZero() {
@@ -237,14 +242,16 @@ func (c *Controller) syncHandler(key string) error {
 				_, err := c.devopsClient.UpdateProjectPipeline(nsName, copyPipeline)
 				if err != nil {
 					klog.V(8).Info(err, fmt.Sprintf("failed to update pipeline config %s ", key))
-					return err
+					copyPipeline.Annotations[devopsv1alpha3.PipelineSyncStatusAnnoKey] = modelsdevops.StatusFailed
+					goto SyncCopy
 				}
 			}
 		} else {
 			_, err := c.devopsClient.CreateProjectPipeline(nsName, copyPipeline)
 			if err != nil {
 				klog.V(8).Info(err, fmt.Sprintf("failed to create copyPipeline %s ", key))
-				return err
+				copyPipeline.Annotations[devopsv1alpha3.PipelineSyncStatusAnnoKey] = modelsdevops.StatusFailed
+				goto SyncCopy
 			}
 		}
 
@@ -253,6 +260,8 @@ func (c *Controller) syncHandler(key string) error {
 		if sliceutil.HasString(copyPipeline.ObjectMeta.Finalizers, devopsv1alpha3.PipelineFinalizerName) {
 			if _, err := c.devopsClient.DeleteProjectPipeline(nsName, pipeline.Name); err != nil {
 				klog.V(8).Info(err, fmt.Sprintf("failed to delete pipeline %s in devops", key))
+				copyPipeline.Annotations[devopsv1alpha3.PipelineSyncStatusAnnoKey] = modelsdevops.StatusFailed
+				goto SyncCopy
 			}
 			copyPipeline.ObjectMeta.Finalizers = sliceutil.RemoveString(copyPipeline.ObjectMeta.Finalizers, func(item string) bool {
 				return item == devopsv1alpha3.PipelineFinalizerName
@@ -260,7 +269,15 @@ func (c *Controller) syncHandler(key string) error {
 
 		}
 	}
+	copyPipeline.Annotations[devopsv1alpha3.PipelineSyncStatusAnnoKey] = modelsdevops.StatusSuccessful
+
+	// if sync isn't successful, remove it from queue and add a new one
+SyncCopy:
 	if !reflect.DeepEqual(pipeline, copyPipeline) {
+		// if Sync State change, update time
+		if !reflect.DeepEqual(pipeline.Annotations[devopsv1alpha3.PipelineSyncStatusAnnoKey], copyPipeline.Annotations[devopsv1alpha3.PipelineSyncStatusAnnoKey]) {
+			copyPipeline.Annotations[devopsv1alpha3.PipelineSyncTimeAnnoKey] = modelsdevops.GetSyncNowTime()
+		}
 		_, err = c.kubesphereClient.DevopsV1alpha3().Pipelines(nsName).Update(copyPipeline)
 		if err != nil {
 			klog.V(8).Info(err, fmt.Sprintf("failed to update pipeline %s ", key))

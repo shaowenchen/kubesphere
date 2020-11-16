@@ -69,4 +69,7 @@ const (
 	//	In the old version, the credential is stored in jenkins and cannot be obtained.
 	//	This field is set to ensure that the secret is not overwritten by a nil value.
 	CredentialAutoSyncAnnoKey = DevOpsCredentialPrefix + "autosync"
+	CredentialSyncStatusAnnoKey = DevOpsCredentialPrefix + "syncstatus"
+	CredentialSyncTimeAnnoKey = DevOpsCredentialPrefix + "synctime"
+	CredentialSyncMsgAnnoKey = DevOpsCredentialPrefix + "syncmsg"
 )

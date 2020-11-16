@@ -34,6 +34,7 @@ import (
 	devopsv1alpha3 "kubesphere.io/kubesphere/pkg/apis/devops/v1alpha3"
 	kubesphereclient "kubesphere.io/kubesphere/pkg/client/clientset/versioned"
 	"kubesphere.io/kubesphere/pkg/constants"
+	modelsdevops "kubesphere.io/kubesphere/pkg/models/devops"
 	devopsClient "kubesphere.io/kubesphere/pkg/simple/client/devops"
 	"kubesphere.io/kubesphere/pkg/utils/k8sutil"
 	"kubesphere.io/kubesphere/pkg/utils/sliceutil"
@@ -230,6 +231,10 @@ func (c *Controller) syncHandler(key string) error {
 		return err
 	}
 
+	if state, ok := secret.Annotations[devopsv1alpha3.CredentialSyncStatusAnnoKey]; ok && state == modelsdevops.StatusSuccessful {
+		return nil
+	}
+
 	copySecret := secret.DeepCopy()
 	// DeletionTimestamp.IsZero() means copySecret has not been deleted.
 	if secret.ObjectMeta.DeletionTimestamp.IsZero() {
@@ -245,14 +250,16 @@ func (c *Controller) syncHandler(key string) error {
 				_, err := c.devopsClient.UpdateCredentialInProject(nsName, copySecret)
 				if err != nil {
 					klog.V(8).Info(err, fmt.Sprintf("failed to update secret %s ", key))
-					return err
+					copySecret.Annotations[devopsv1alpha3.CredentialSyncStatusAnnoKey] = modelsdevops.StatusFailed
+					goto SyncCopy
 				}
 			}
 		} else {
 			_, err = c.devopsClient.CreateCredentialInProject(nsName, copySecret)
 			if err != nil {
 				klog.V(8).Info(err, fmt.Sprintf("failed to create secret %s ", key))
-				return err
+				copySecret.Annotations[devopsv1alpha3.CredentialSyncStatusAnnoKey] = modelsdevops.StatusFailed
+				goto SyncCopy
 			}
 		}
 	} else {
@@ -260,15 +267,23 @@ func (c *Controller) syncHandler(key string) error {
 		if sliceutil.HasString(copySecret.ObjectMeta.Finalizers, devopsv1alpha3.CredentialFinalizerName) {
 			if _, err := c.devopsClient.DeleteCredentialInProject(nsName, secret.Name); err != nil {
 				klog.V(8).Info(err, fmt.Sprintf("failed to delete secret %s in devops", key))
-				return err
+				copySecret.Annotations[devopsv1alpha3.CredentialSyncStatusAnnoKey] = modelsdevops.StatusFailed
+				goto SyncCopy
 			}
 			copySecret.ObjectMeta.Finalizers = sliceutil.RemoveString(copySecret.ObjectMeta.Finalizers, func(item string) bool {
 				return item == devopsv1alpha3.CredentialFinalizerName
 			})
-
 		}
 	}
+	copySecret.Annotations[devopsv1alpha3.CredentialSyncStatusAnnoKey] = modelsdevops.StatusSuccessful
+
+	// if sync isn't successful, remove it from queue and add a new one
+SyncCopy:
+	copySecret.Annotations[devopsv1alpha3.CredentialSyncTimeAnnoKey] = modelsdevops.GetSyncNowTime()
 	if !reflect.DeepEqual(secret, copySecret) {
+		if !reflect.DeepEqual(secret.Annotations[devopsv1alpha3.CredentialSyncStatusAnnoKey], copySecret.Annotations[devopsv1alpha3.CredentialSyncStatusAnnoKey]) {
+			copySecret.Annotations[devopsv1alpha3.CredentialSyncTimeAnnoKey] = modelsdevops.GetSyncNowTime()
+		}
 		_, err = c.client.CoreV1().Secrets(nsName).Update(copySecret)
 		if err != nil {
 			klog.V(8).Info(err, fmt.Sprintf("failed to update secret %s ", key))

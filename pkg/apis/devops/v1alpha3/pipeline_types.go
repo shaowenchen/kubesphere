@@ -29,6 +29,10 @@ const (
 	ResourceKindPipeline     = "Pipeline"
 	ResourceSingularPipeline = "pipeline"
 	ResourcePluralPipeline   = "pipelines"
+	PipelinePrefix  = "pipeline.devops.kubesphere.io/"
+	PipelineSyncStatusAnnoKey = PipelinePrefix + "syncstatus"
+	PipelineSyncTimeAnnoKey = PipelinePrefix + "synctime"
+	PipelineSyncMsgAnnoKey = PipelinePrefix + "syncmsg"
 )
 
 // PipelineSpec defines the desired state of Pipeline
